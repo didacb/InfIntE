@@ -548,6 +548,9 @@ PyGolMnets<- function(otu.table, hypothesis, pyGolM.location, thresh=0.01, exclu
   
   df<- data.frame(get.edgelist(graph_from_adjacency_matrix(fit.p$refit$stars)))
   df<- ab[paste0(ab[,1], ab[,2]) %in% paste0(df[,1], df[,2]),]
+  
+  df<- classifyInteraction(df)
+  
   resul<-list(selected_interactions=df, pulsar_result=pr, abduced_table=ab)
 
   return(resul)
