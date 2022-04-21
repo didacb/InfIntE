@@ -269,7 +269,7 @@ normaliseCompression<- function(abduced.table, presence){
   return(abduced.table)
 }
 
-Abduce<- function(bottom, hypothesis, abundance=NULL){
+Abduce<- function(bottom, hypothesis, pyGolM.location, abundance=NULL){
   
   if(is.null(abundance)){
     abundance<-bottom$abundance
@@ -279,7 +279,7 @@ Abduce<- function(bottom, hypothesis, abundance=NULL){
   abducible<- c('effect_up','effect_down')
   
   #Source python function
-  reticulate::source_python("~/Desktop/pygolm_V1.py", convert = TRUE)
+  reticulate::source_python(pyGolM.location, convert = TRUE)
   
   #Execute abduction using PyGolM
   coverage<- pygolm_abduction(bottom$clauses, abducible,  positive_example_list=abundance, constant_set=bottom$const, meta_rule=hypothesis, metric="predictive_power")
@@ -297,7 +297,7 @@ Abduce<- function(bottom, hypothesis, abundance=NULL){
   
 }
 
-getBottom<- function(tb, depth=NULL, exclusion=FALSE, cores=1, qpcr=NULL){
+getBottom<- function(tb, pyGolM.location, depth=NULL, exclusion=FALSE, cores=1, qpcr=NULL){
   
   #Check ASV tables
   tb<- checkASVtable(tb)
@@ -326,7 +326,7 @@ getBottom<- function(tb, depth=NULL, exclusion=FALSE, cores=1, qpcr=NULL){
   presence1<- gsub("presence", "presence1", presence)
   
   #Source PyGolM
-  reticulate::source_python("~/Desktop/pygolm_V1.py", convert = TRUE)
+  reticulate::source_python(pyGolM.location, convert = TRUE)
   
   #Generate bottom clauses
   P<- bottom_clause_generation( constant_set = const,  container = "memory", positive_example=c(abundance), negative_example=NULL, file=c(presence, presence1))
@@ -345,7 +345,7 @@ getBottom<- function(tb, depth=NULL, exclusion=FALSE, cores=1, qpcr=NULL){
 ############################# Bootstrap ##################################################################
 ################################################################################################ ################
 
-pygolmPulsar<- function(tb, lambda, bot, hypothesis, exclusion, depth=NULL){
+pygolmPulsar<- function(tb, lambda, bot, hypothesis, exclusion, pyGolM.location, depth=NULL){
   #Subset depth
   if(!is.null(depth)){
     depth<- depth[rownames(tb)]
@@ -356,11 +356,11 @@ pygolmPulsar<- function(tb, lambda, bot, hypothesis, exclusion, depth=NULL){
   #Get observations from subsampled table
   bot$abundance<- getObservations(t(data.frame(tb)), depth = depth, exclusion = exclusion)
   #Abduce
-  ab<- Abduce(bot, hypothesis)
+  ab<- Abduce(bottom = bot, hypothesis = hypothesis, pyGolM.location = pyGolM.location)
   
   #Obtain final value
-  abduced.table<- ddply(ab, .(sp1, sp2, lnk), summarise, comp=max(comp))   
-  abduced.table<- ddply(abduced.table, .(sp1, sp2), summarise, lnk = lnk[comp == max(comp)][1], comp = if(length(comp)>1){max(comp) - min(comp)}else{comp})
+  abduced.table<- plyr::ddply(ab, .(sp1, sp2, lnk), summarise, comp=max(comp))   
+  abduced.table<- plyr::ddply(abduced.table, .(sp1, sp2), summarise, lnk = lnk[comp == max(comp)][1], comp = if(length(comp)>1){max(comp) - min(comp)}else{comp})
   
   #Add non interacting asvs
   noi.asvs<- snames[!snames %in% unique(c(abduced.table$sp1, abduced.table$sp2))]
@@ -369,15 +369,15 @@ pygolmPulsar<- function(tb, lambda, bot, hypothesis, exclusion, depth=NULL){
   abduced.table<- rbind(abduced.table, noi.tab)
    
   #Construct adjacency matrix    
-  g<- graph_from_data_frame(abduced.table[,c(1,2,4)])
-  ad<- get.adjacency(g, attr = "comp",sparse = TRUE)
+  g<- igraph::graph_from_data_frame(abduced.table[,c(1,2,4)])
+  ad<- igraph::get.adjacency(g, attr = "comp",sparse = TRUE)
   
   #For each lambda
   pt<- lapply(lambda, function(lam){
     #Compression bigger than lambda
     tmp <- ad > lam
-    ga<- graph_from_adjacency_matrix(tmp)
-    tmp<-get.adjacency(ga, sparse = TRUE)
+    ga<- igraph::graph_from_adjacency_matrix(tmp)
+    tmp<-igraph::get.adjacency(ga, sparse = TRUE)
     
     diag(tmp) <- FALSE
     return(tmp)
@@ -520,6 +520,39 @@ checkSparsity<- function(tb, plotg=FALSE){
     return(sps)  
   }
 }
+
+PyGolMnets<- function(otu.table, hypothesis, pyGolM.location, thresh=0.01, exclusion=FALSE, qpcr=NULL, depth=NULL){
+  tb<- otu.table
+  
+  #Produce bottom clause
+  bot<- getBottom(tb, exclusion = exclusion, qpcr = qpcr, pyGolM.location = pyGolM.location)
+  tb<- bot$table
+  
+  #Get final values
+  ab<- Abduce(bottom = bot,hypothesis =  hypothesis, pyGolM.location = pyGolM.location)
+  #Obtain final value
+  ab<- plyr::ddply(ab, .(sp1, sp2, lnk), summarise, comp=max(comp))
+  ab<- plyr::ddply(ab, .(sp1, sp2), summarise, lnk = lnk[comp == max(comp)][1], comp = if(length(comp)>1){max(comp) - min(comp)}else{comp})
+  
+  #Length observations
+  mx<- length(bot$abundance)
+  
+  #Lambda distribution
+  lambda<-pulsar::getLamPath(max = mx, min = 0, 50, FALSE)
+  
+  #Pulsar execution
+  pr<- pulsar::pulsar(t(tb), pygolmPulsar, fargs = list(lambda=lambda, bot=bot, hypothesis=hypothesis, exclusion=exclusion, pyGolM.location=pyGolM.location), rep.num = nperms, lb.stars = TRUE,ub.stars = TRUE, thresh = thresh)
+  
+  #Format output to dataframe
+  fit.p <- pulsar::refit(pr, criterion = "stars")
+  
+  df<- data.frame(get.edgelist(graph_from_adjacency_matrix(fit.p$refit$stars)))
+  df<- ab[paste0(ab[,1], ab[,2]) %in% paste0(df[,1], df[,2]),]
+  resul<-list(selected_interactions=df, pulsar_result=pr, abduced_table=ab)
+
+  return(resul)
+}
+
 ##############################################################################
 ############################# Classify interactions #########################
 #############################################################################
