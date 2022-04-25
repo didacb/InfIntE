@@ -170,7 +170,7 @@ getObservationsQpcr<- function(qpcr.mat, exclusion=FALSE){
         abundance.unit<- paste0("abundance(", sn[x[1]], ",", sn[x[2]], ",",rownames(qpcr.mat), ",up).")
       }
       #If log samp1 is 0.5 bigger than samp2
-      if(abs(psamp[1]- psamp[2]) > 0.05 & psamp[1] < psamp[2]){
+      if(abs(psamp[1]- psamp[2]) > 0.05 & psamp[1] > psamp[2]){
         abundance.unit<- paste0("abundance(", sn[x[1]], ",", sn[x[2]], ",", rownames(qpcr.mat), ",down).")
       }  
     }else{
