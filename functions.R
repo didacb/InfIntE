@@ -1,23 +1,14 @@
-checkPyModules<- function(modules = c("tqdm", "numpy")){
-  
-  #For each module
-  module.installed<- vapply(modules, function(mod){
-    #Check if it is installed
-    reticulate::py_module_available(mod)  
-  }, FUN.VALUE = logical(1))
-  #Retunr not installed modules
-  return(modules[!module.installed])
-}
 
-installPyModules<- function(modules){
-    #install python modules
-    reticulate::py_install(packages = modules)
-    return(paste0(modules, "installed"))
-}
 
-loadPyGolM<- function(path.to.PyGolM="~"){
-  reticulate::source_python(file.path(path.to.PyGolM, "abduction_utils-new.py"))
-  return("PyGolM loaded")
+loadPyGolM<- function(){
+  #package.location<-  system.file(package = "pyGolm-nets")
+  package.location<- "/home/didac/Desktop/PyGolM-nets"
+  ex_wd <- getwd()
+  #on.exit(setwd(ex_wd))
+  setwd(package.location)
+  reticulate::source_python(file.path(package.location, "pygolm_abduce.py"), envir = globalenv())
+  setwd(ex_wd)
+  #return("PyGolM loaded")
 }
 
 
@@ -269,7 +260,7 @@ normaliseCompression<- function(abduced.table, presence){
   return(abduced.table)
 }
 
-Abduce<- function(bottom, hypothesis, pyGolM.location, abundance=NULL){
+Abduce<- function(bottom, hypothesis, abundance=NULL){
   
   if(is.null(abundance)){
     abundance<-bottom$abundance
@@ -279,10 +270,10 @@ Abduce<- function(bottom, hypothesis, pyGolM.location, abundance=NULL){
   abducible<- c('effect_up','effect_down')
   
   #Source python function
-  reticulate::source_python(pyGolM.location, convert = TRUE)
+  loadPyGolM()
   
   #Execute abduction using PyGolM
-  coverage<- pygolm_abduction(bottom$clauses, abducible,  positive_example_list=abundance, constant_set=bottom$const, meta_rule=hypothesis, metric="predictive_power")
+  coverage<- abduction(bottom$clauses, abducible,  positive_example_list=abundance, constant_set=bottom$const, meta_rule=hypothesis, metric="predictive_power")
   
   #Extract compression values from python object
   compressions<- vapply(names(coverage), function(x){coverage[[x]]}, FUN.VALUE = numeric(1))
@@ -297,7 +288,7 @@ Abduce<- function(bottom, hypothesis, pyGolM.location, abundance=NULL){
   
 }
 
-getBottom<- function(tb, pyGolM.location, depth=NULL, exclusion=FALSE, cores=1, qpcr=NULL){
+getBottom<- function(tb, depth=NULL, exclusion=FALSE, cores=1, qpcr=NULL){
   
   #Check ASV tables
   tb<- checkASVtable(tb)
@@ -326,13 +317,13 @@ getBottom<- function(tb, pyGolM.location, depth=NULL, exclusion=FALSE, cores=1, 
   presence1<- gsub("presence", "presence1", presence)
   
   #Source PyGolM
-  reticulate::source_python(pyGolM.location, convert = TRUE)
+  loadPyGolM()
   
   #Generate bottom clauses
-  P<- bottom_clause_generation( constant_set = const,  container = "memory", positive_example=c(abundance), negative_example=NULL, file=c(presence, presence1))
+  P<-  generate_bottom_clause(c(presence, presence1), const,abundance, NULL,  container="memory")
   
   #Format bottom clause
-  P<- dict(P[[1]], convert = TRUE)
+  P<- dict(P, convert = TRUE)
   
   #Create and object with all the elements necessaty for abduction
   tb[is.na(tb)]<- 0
@@ -345,7 +336,7 @@ getBottom<- function(tb, pyGolM.location, depth=NULL, exclusion=FALSE, cores=1, 
 ############################# Bootstrap ##################################################################
 ################################################################################################ ################
 
-pygolmPulsar<- function(tb, lambda, bot, hypothesis, exclusion, pyGolM.location, depth=NULL){
+pygolmPulsar<- function(tb, lambda, bot, hypothesis, exclusion, depth=NULL){
   #Subset depth
   if(!is.null(depth)){
     depth<- depth[rownames(tb)]
@@ -356,7 +347,7 @@ pygolmPulsar<- function(tb, lambda, bot, hypothesis, exclusion, pyGolM.location,
   #Get observations from subsampled table
   bot$abundance<- getObservations(t(data.frame(tb)), depth = depth, exclusion = exclusion)
   #Abduce
-  ab<- Abduce(bottom = bot, hypothesis = hypothesis, pyGolM.location = pyGolM.location)
+  ab<- Abduce(bottom = bot, hypothesis = hypothesis)
   
   #Obtain final value
   abduced.table<- plyr::ddply(ab, .(sp1, sp2, lnk), summarise, comp=max(comp))   
@@ -521,15 +512,15 @@ checkSparsity<- function(tb, plotg=FALSE){
   }
 }
 
-PyGolMnets<- function(otu.table, hypothesis, pyGolM.location, thresh=0.01, exclusion=FALSE, qpcr=NULL, depth=NULL){
+PyGolMnets<- function(otu.table, hypothesis, thresh=0.01, exclusion=FALSE, qpcr=NULL, depth=NULL){
   tb<- otu.table
   
   #Produce bottom clause
-  bot<- getBottom(tb, exclusion = exclusion, qpcr = qpcr, pyGolM.location = pyGolM.location)
+  bot<- getBottom(tb, exclusion = exclusion, qpcr = qpcr)
   tb<- bot$table
   
   #Get final values
-  ab<- Abduce(bottom = bot,hypothesis =  hypothesis, pyGolM.location = pyGolM.location)
+  ab<- Abduce(bottom = bot,hypothesis =  hypothesis)
   #Obtain final value
   ab<- plyr::ddply(ab, .(sp1, sp2, lnk), summarise, comp=max(comp))
   ab<- plyr::ddply(ab, .(sp1, sp2), summarise, lnk = lnk[comp == max(comp)][1], comp = if(length(comp)>1){max(comp) - min(comp)}else{comp})
@@ -541,7 +532,7 @@ PyGolMnets<- function(otu.table, hypothesis, pyGolM.location, thresh=0.01, exclu
   lambda<-pulsar::getLamPath(max = mx, min = 0, 50, FALSE)
   
   #Pulsar execution
-  pr<- pulsar::pulsar(t(tb), pygolmPulsar, fargs = list(lambda=lambda, bot=bot, hypothesis=hypothesis, exclusion=exclusion, pyGolM.location=pyGolM.location), rep.num = nperms, lb.stars = TRUE,ub.stars = TRUE, thresh = thresh)
+  pr<- pulsar::pulsar(t(tb), pygolmPulsar, fargs = list(lambda=lambda, bot=bot, hypothesis=hypothesis, exclusion=exclusion), rep.num = nperms, lb.stars = TRUE,ub.stars = TRUE, thresh = thresh)
   
   #Format output to dataframe
   fit.p <- pulsar::refit(pr, criterion = "stars")

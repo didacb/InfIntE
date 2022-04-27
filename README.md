@@ -1,5 +1,5 @@
 # PyGolM-nets
-Microbial interaction infernce using logic machine learning
+Microbial interaction inference using logic machine learning
 
 #Dependencies
 ##R packages
