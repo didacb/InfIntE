@@ -287,7 +287,7 @@ Abduce<- function(bottom, hypothesis, abundance=NULL){
   
 }
 
-getBottom<- function(tb, depth=NULL, exclusion=FALSE, cores=1, qpcr=NULL){
+getBottom<- function(tb, depth=NULL, exclusion=FALSE, cores=1, qpcr=NULL,search.depth=2){
   
   if(!is.null(qpcr)){
     qpcr<- matrix(qpcr, nrow=1)
@@ -308,7 +308,7 @@ getBottom<- function(tb, depth=NULL, exclusion=FALSE, cores=1, qpcr=NULL){
   loadPyGolM()
   
   #Generate bottom clauses
-  P<-  generate_bottom_clause(c(presence, presence1), const,abundance, NULL,  container="memory")
+  P<-  generate_bottom_clause(c(presence, presence1), const,abundance, NULL,  container="memory", depth=search.depth)
   
   #Format bottom clause
   P<- reticulate::dict(P, convert = TRUE)
@@ -500,7 +500,7 @@ checkSparsity<- function(tb, plotg=FALSE){
   }
 }
 
-PyGolMnets<- function(otu.table, hypothesis, thresh=0.01, exclusion=FALSE, qpcr=NULL, depth=NULL, nperms=50){
+PyGolMnets<- function(otu.table, hypothesis, thresh=0.01, exclusion=FALSE, qpcr=NULL, depth=NULL, nperms=50, search.depth=2){
   tb<- otu.table
   
   #Check ASV tables
@@ -515,7 +515,7 @@ PyGolMnets<- function(otu.table, hypothesis, thresh=0.01, exclusion=FALSE, qpcr=
   colnames(tb)<- paste0("c", seq_len(ncol(tb)))
   
   #Produce bottom clause
-  bot<- getBottom(tb, exclusion = exclusion, qpcr = qpcr)
+  bot<- getBottom(tb, exclusion = exclusion, qpcr = qpcr,depth = depth, search.depth = search.depth)
   tb<- bot$table
   
   #Get final values
