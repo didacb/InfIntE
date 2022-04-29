@@ -4,7 +4,7 @@ loadPyGolM<- function(){
   #package.location<-  system.file(package = "pyGolm-nets")
   package.location<- "/home/didac/Desktop/PyGolM-nets"
   ex_wd <- getwd()
-  #on.exit(setwd(ex_wd))
+  on.exit(setwd(ex_wd))
   setwd(package.location)
   reticulate::source_python(file.path(package.location, "pygolm_abduce.py"), envir = globalenv())
   setwd(ex_wd)
@@ -290,17 +290,6 @@ Abduce<- function(bottom, hypothesis, abundance=NULL){
 
 getBottom<- function(tb, depth=NULL, exclusion=FALSE, cores=1, qpcr=NULL){
   
-  #Check ASV tables
-  tb<- checkASVtable(tb)
-  
-  #Save given ASV and sample names
-  asv.names<- rownames(tb)
-  sample.names<- colnames(tb)
-  
-  #Set simplified names
-  rownames(tb)<- paste0("s", seq_len(nrow(tb)))
-  colnames(tb)<- paste0("c", seq_len(ncol(tb)))
-  
   if(!is.null(qpcr)){
     qpcr<- matrix(qpcr, nrow=1)
     rownames(qpcr)<- "pathogen"
@@ -323,12 +312,12 @@ getBottom<- function(tb, depth=NULL, exclusion=FALSE, cores=1, qpcr=NULL){
   P<-  generate_bottom_clause(c(presence, presence1), const,abundance, NULL,  container="memory")
   
   #Format bottom clause
-  P<- dict(P, convert = TRUE)
+  P<- reticulate::dict(P, convert = TRUE)
   
   #Create and object with all the elements necessaty for abduction
   tb[is.na(tb)]<- 0
-  bottom<- list(P, abundance, presence, presence1, const, asv.names, sample.names, tb)
-  names(bottom)<- c("clauses", "abundance", "presence", "presence1", "const", "asv", "sample", "table")
+  bottom<- list(P, abundance, presence, presence1, const, tb)
+  names(bottom)<- c("clauses", "abundance", "presence", "presence1", "const", "table")
   return(bottom) 
 }
 
@@ -512,8 +501,19 @@ checkSparsity<- function(tb, plotg=FALSE){
   }
 }
 
-PyGolMnets<- function(otu.table, hypothesis, thresh=0.01, exclusion=FALSE, qpcr=NULL, depth=NULL){
+PyGolMnets<- function(otu.table, hypothesis, thresh=0.01, exclusion=FALSE, qpcr=NULL, depth=NULL, nperms=50){
   tb<- otu.table
+  
+  #Check ASV tables
+  tb<- checkASVtable(tb)
+  
+  #Save given ASV and sample names
+  asv.names<- rownames(tb)
+  sample.names<- colnames(tb)
+  
+  #Set simplified names
+  rownames(tb)<- paste0("s", seq_len(nrow(tb)))
+  colnames(tb)<- paste0("c", seq_len(ncol(tb)))
   
   #Produce bottom clause
   bot<- getBottom(tb, exclusion = exclusion, qpcr = qpcr)
@@ -537,7 +537,7 @@ PyGolMnets<- function(otu.table, hypothesis, thresh=0.01, exclusion=FALSE, qpcr=
   #Format output to dataframe
   fit.p <- pulsar::refit(pr, criterion = "stars")
   
-  df<- data.frame(get.edgelist(graph_from_adjacency_matrix(fit.p$refit$stars)))
+  df<- data.frame(igraph::get.edgelist(igraph::graph_from_adjacency_matrix(fit.p$refit$stars)))
   df<- ab[paste0(ab[,1], ab[,2]) %in% paste0(df[,1], df[,2]),]
   
   df<- classifyInteraction(df)
