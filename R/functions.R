@@ -5,6 +5,7 @@ loadPyGolM<- function(){
   ex_wd <- getwd()
   on.exit(setwd(ex_wd))
   setwd(package.location)
+  reticulate::use_python(system2("which", "python3", stdout = TRUE))
   reticulate::source_python(file.path(package.location, "pygolm_abduce.py"), envir = globalenv())
   setwd(ex_wd)
   #return("PyGolM loaded")
