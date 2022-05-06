@@ -1,11 +1,14 @@
 
 loadPyGolM<- function(){
   #package.location<-  system.file(package = "pyGolm-nets")
-  package.location<- "/home/didac/Desktop/PyGolM-nets/str"
+  package.location<- "/home/didac/Desktop/InfIntE/str"
   ex_wd <- getwd()
   on.exit(setwd(ex_wd))
   setwd(package.location)
-  reticulate::use_python(system2("which", "python3", stdout = TRUE))
+  #reticulate::use_python(system2("which", "python3", stdout = TRUE))
+  
+  reticulate::use_python("/usr/bin/python3")
+
   reticulate::source_python(file.path(package.location, "pygolm_abduce.py"), envir = globalenv())
   setwd(ex_wd)
   #return("PyGolM loaded")
@@ -24,6 +27,11 @@ checkASVtable<- function(tb){
   }
   return(tb)
 }
+
+returnNames<- function(tb, asv.names){
+  nms.tb<- apply(tb, c(1,2))
+}
+
 
 #Function to apply chisq test to all replicate comparison for one species and obtain the abundance progol input
 abundanceChi<- function(comparisons, asv.table, spec, samps, read.depth, exclusion){
@@ -501,7 +509,8 @@ checkSparsity<- function(tb, plotg=FALSE){
   }
 }
 
-PyGolMnets<- function(otu.table, hypothesis, thresh=0.01, exclusion=FALSE, qpcr=NULL, depth=NULL, nperms=50, search.depth=2){
+InfIntE<- function(otu.table, hypothesis, thresh=0.01, exclusion=FALSE, qpcr=NULL, depth=NULL, nperms=50, search.depth=2){
+  
   tb<- otu.table
   
   #Check ASV tables
@@ -521,6 +530,7 @@ PyGolMnets<- function(otu.table, hypothesis, thresh=0.01, exclusion=FALSE, qpcr=
   
   #Get final values
   ab<- Abduce(bottom = bot,hypothesis =  hypothesis)
+  
   #Obtain final value
   ab<- plyr::ddply(ab, .(sp1, sp2, lnk), summarise, comp=max(comp))
   ab<- plyr::ddply(ab, .(sp1, sp2), summarise, lnk = lnk[comp == max(comp)][1], comp = if(length(comp)>1){max(comp) - min(comp)}else{comp})
