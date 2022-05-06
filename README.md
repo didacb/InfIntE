@@ -1,4 +1,4 @@
-# PyGolM-nets
+# InfintE
 Microbial interaction inference using logic machine learning
 
 #Dependencies
