@@ -1,6 +1,6 @@
 
-loadPyGolM<- function(){
-  #package.location<-  system.file(package = "pyGolm-nets")
+load<- function(){
+  #package.location<-  system.file(package = "InfIntE-nets")
   package.location<- "/home/didac/Desktop/InfIntE/str"
   ex_wd <- getwd()
   on.exit(setwd(ex_wd))
@@ -9,9 +9,9 @@ loadPyGolM<- function(){
   
   reticulate::use_python("/usr/bin/python3")
 
-  reticulate::source_python(file.path(package.location, "pygolm_abduce.py"), envir = globalenv())
+  reticulate::source_python(file.path(package.location, "InfIntE_abduce.py"), envir = globalenv())
   setwd(ex_wd)
-  #return("PyGolM loaded")
+  #return("InfIntE loaded")
 }
 
 
@@ -29,7 +29,8 @@ checkASVtable<- function(tb){
 }
 
 returnNames<- function(tb, asv.names){
-  nms.tb<- apply(tb, c(1,2))
+  tb[,1:2]<- apply(tb[,1:2], c(1,2), function(x)ifelse(grepl("^s",x), asv.names[x],x ))
+  return(tb)
 }
 
 
@@ -278,9 +279,9 @@ Abduce<- function(bottom, hypothesis, abundance=NULL){
   abducible<- c('effect_up','effect_down')
   
   #Source python function
-  loadPyGolM()
+  loadInfIntE()
   
-  #Execute abduction using PyGolM
+  #Execute abduction using InfIntE
   coverage<- abduction(bottom$clauses, abducible,  positive_example_list=abundance, constant_set=bottom$const, meta_rule=hypothesis, metric="predictive_power")
   
   #Extract compression values from python object
@@ -313,8 +314,8 @@ getBottom<- function(tb, depth=NULL, exclusion=FALSE, cores=1, qpcr=NULL,search.
   
   presence1<- gsub("presence", "presence1", presence)
   
-  #Source PyGolM
-  loadPyGolM()
+  #Source InfIntE
+  loadInfIntE()
   
   #Generate bottom clauses
   P<-  generate_bottom_clause(c(presence, presence1), const,abundance, NULL,  container="memory", depth=search.depth)
@@ -333,7 +334,7 @@ getBottom<- function(tb, depth=NULL, exclusion=FALSE, cores=1, qpcr=NULL,search.
 ############################# Bootstrap ##################################################################
 ################################################################################################ ################
 
-pygolmPulsar<- function(tb, lambda, bot, hypothesis, exclusion, depth=NULL){
+InfIntEPulsar<- function(tb, lambda, bot, hypothesis, exclusion, depth=NULL){
   #Subset depth
   if(!is.null(depth)){
     depth<- depth[rownames(tb)]
@@ -522,7 +523,11 @@ InfIntE<- function(otu.table, hypothesis, thresh=0.01, exclusion=FALSE, qpcr=NUL
   
   #Set simplified names
   rownames(tb)<- paste0("s", seq_len(nrow(tb)))
+  names(asv.names)<- paste0("s", seq_len(nrow(tb)))
+  
   colnames(tb)<- paste0("c", seq_len(ncol(tb)))
+  
+  names(depth)<- colnames(tb)
   
   #Produce bottom clause
   bot<- getBottom(tb, exclusion = exclusion, qpcr = qpcr,depth = depth, search.depth = search.depth)
@@ -542,7 +547,7 @@ InfIntE<- function(otu.table, hypothesis, thresh=0.01, exclusion=FALSE, qpcr=NUL
   lambda<-pulsar::getLamPath(max = mx, min = 0, 50, FALSE)
   
   #Pulsar execution
-  pr<- pulsar::pulsar(t(tb), pygolmPulsar, fargs = list(lambda=lambda, bot=bot, hypothesis=hypothesis, exclusion=exclusion), rep.num = nperms, lb.stars = TRUE,ub.stars = TRUE, thresh = thresh)
+  pr<- pulsar::pulsar(t(tb), InfIntEPulsar, fargs = list(lambda=lambda, bot=bot, hypothesis=hypothesis, exclusion=exclusion, depth=depth), rep.num = nperms, lb.stars = TRUE,ub.stars = TRUE, thresh = thresh)
   
   #Format output to dataframe
   fit.p <- pulsar::refit(pr, criterion = "stars")
@@ -552,7 +557,7 @@ InfIntE<- function(otu.table, hypothesis, thresh=0.01, exclusion=FALSE, qpcr=NUL
   
   df<- classifyInteraction(df)
   
-  resul<-list(selected_interactions=df, pulsar_result=pr, abduced_table=ab)
+  resul<-list(selected_interactions= returnNames(df, asv.names), pulsar_result=pr, abduced_table=returnNames(ab, asv.names))
 
   return(resul)
 }
@@ -588,4 +593,21 @@ classifyInteraction<- function(tb){
   
   return(tb)
 }
+
+
+assignTaxonomy<- function(tb, phylos){
+  
+  tx<- data.frame(tax_table(phylos))
+  tx$Genus<- gsub("g__", "", tx$Genus)
+  tx$Species<- gsub("s__", "", tx$Species)
+  
+  ge<- paste0(tx$Genus, " ", tx$Species)
+  names(ge)<- rownames(tx)
+  
+  tb[,1:2]<- apply(tb[,1:2], c(1,2), function(x){
+    
+  })
+}
+
+
 
