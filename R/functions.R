@@ -1,5 +1,5 @@
 
-load<- function(){
+loadInfIntE<- function(){
   #package.location<-  system.file(package = "InfIntE-nets")
   package.location<- "/home/didac/Desktop/InfIntE/str"
   ex_wd <- getwd()
@@ -9,7 +9,7 @@ load<- function(){
   
   reticulate::use_python("/usr/bin/python3")
 
-  reticulate::source_python(file.path(package.location, "InfIntE_abduce.py"), envir = globalenv())
+  reticulate::source_python(file.path(package.location, "pygolm_abduce.py"), envir = globalenv())
   setwd(ex_wd)
   #return("InfIntE loaded")
 }
