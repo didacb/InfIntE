@@ -1,2 +1,6 @@
 .Rhistory
 str/*.so
+.Rproj.user
+.Rdata
+.httr-oauth
+.DS_Store
