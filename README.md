@@ -28,6 +28,6 @@ inference<- PyGolMnets(otu.table, hypothesis, pyGolM.location)
 inference object contains the table with the interactions classified, de results of the StARS selection, the result of the abduction.
 
 
-gcc -I/usr/include/python3.8 -c -fPIC pygolm_V1.c -o pygolm_V1.o
+gcc -I/usr/include/python3.9 I/usr/lib/R  -c -fPIC pygolm_V1.c -o pygolm_V1.o
 
 gcc pygolm_V1.o -shared -o pygolm_V1.so
