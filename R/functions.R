@@ -8,37 +8,53 @@
 loadInfIntE <- function() {
   # package.location<-  system.file(package = "InfIntE-nets")
   package.location <- "/home/didac/Desktop/InfIntE/str"
-  ex_wd <- getwd()
-  on.exit(setwd(ex_wd))
+  current_wd <- getwd()
   setwd(package.location)
+
   # reticulate::use_python(system2("which", "python3", stdout = TRUE))
 
   reticulate::use_python("/usr/bin/python3")
 
   reticulate::source_python(file.path(package.location, "pygolm_abduce.py"), envir = globalenv())
-  setwd(ex_wd)
-  # return("InfIntE loaded")
+  setwd(current_wd)
+  on.exit(setwd( current_wd))
 }
 
 
-checkASVtable <- function(tb) {
+#' Title
+#'
+#' @param tb
+#'
+#' @return
+#' @export
+#'
+#' @examples
+check_OTU_table <- function(otu_tab) {
   # Check if all cells are numeric
-  tb <- apply(tb, c(1, 2), as.numeric)
-  if (any(!is.numeric(tb))) {
+  otu_tab <- apply(otu_tab, c(1, 2), as.numeric)
+  if (any(!is.numeric(otu_tab))) {
     return(stop("Please provide an ASV table with numeric values"))
   }
   # Check if there are NA
-  if (any(is.na(tb))) {
+  if (any(is.na(otu_tab))) {
     return(stop("Please provide an ASV table without NA"))
   }
-  return(tb)
+  return(otu_tab)
 }
 
-returnNames <- function(tb, asv.names) {
-  tb[, 1:2] <- apply(tb[, 1:2], c(1, 2), function(x) ifelse(grepl("^s", x), asv.names[x], x))
-  return(tb)
+#' Title
+#'
+#' @param tb
+#' @param asv.names
+#'
+#' @return
+#' @export
+#'
+#' @examples
+return_names <- function(infered, asv.names) {
+  infered[, 1:2] <- apply(infered[, 1:2], c(1, 2), function(x) ifelse(grepl("^s", x), asv.names[x], x))
+  return(infered)
 }
-
 
 # Function to apply chisq test to all replicate comparison for one species and obtain the abundance progol input
 abundanceChi <- function(comparisons, asv.table, spec, samps, read.depth, exclusion) {
@@ -426,7 +442,7 @@ InfIntE <- function(otu.table, hypothesis, thresh = 0.01, exclusion = FALSE, qpc
   df <- ab[paste0(ab[, 1], ab[, 2]) %in% paste0(df[, 1], df[, 2]), ]
 
   df <- classifyInteraction(df)
-
+  df<- return_names(df, asv.names)
   resul <- list(selected_interactions = returnNames(df, asv.names), pulsar_result = pr, abduced_table = returnNames(ab, asv.names))
 
   return(resul)
