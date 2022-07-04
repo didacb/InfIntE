@@ -1,10 +1,4 @@
 
-#' Title
-#'
-#' @return
-#' @export
-#'
-#' @examples
 loadInfIntE <- function() {
   # package.location<-  system.file(package = "InfIntE-nets")
   package.location <- "/home/didac/Desktop/InfIntE/str"
@@ -20,271 +14,9 @@ loadInfIntE <- function() {
   on.exit(setwd( current_wd))
 }
 
-
-#' Title
-#'
-#' @param tb
-#'
-#' @return
-#' @export
-#'
-#' @examples
-check_OTU_table <- function(otu_tab) {
-  # Check if all cells are numeric
-  otu_tab <- apply(otu_tab, c(1, 2), as.numeric)
-  if (any(!is.numeric(otu_tab))) {
-    return(stop("Please provide an ASV table with numeric values"))
-  }
-  # Check if there are NA
-  if (any(is.na(otu_tab))) {
-    return(stop("Please provide an ASV table without NA"))
-  }
-  return(otu_tab)
-}
-
-#' Title
-#'
-#' @param tb
-#' @param asv.names
-#'
-#' @return
-#' @export
-#'
-#' @examples
-return_names <- function(infered, asv.names) {
-  infered[, 1:2] <- apply(infered[, 1:2], c(1, 2), function(x) ifelse(grepl("^s", x), asv.names[x], x))
-  return(infered)
-}
-
-# Function to apply chisq test to all replicate comparison for one species and obtain the abundance progol input
-abundanceChi <- function(comparisons, asv.table, spec, samps, read.depth, exclusion) {
-  # Detect the pair of values and depth to compare
-  pair <- asv.table[spec, comparisons]
-  depth <- read.depth[comparisons]
-
-  # If both pair values no zero and the samples are not equal to depth
-  if (any(pair != depth)) {
-    if (all(pair != 0)) {
-
-      # Make table and add margins
-      tab <- as.matrix(rbind(pair, depth - pair))
-      tab <- addmargins(A = tab, margin = seq_along(dim(tab)))
-
-      # Do the cishq test
-      tst <- suppressWarnings(chisq.test(tab))
-      if (tst[3] < 0.05) {
-        # If it is significant establish the up and down
-        if (pair[1] / depth[1] < pair[2] / depth[2]) {
-          up.down <- "up"
-        } else {
-          up.down <- "down"
-        }
-        # Build logical abundance input
-        abundance.unit <- paste0("abundance(", samps[comparisons[1]], ",", samps[comparisons[2]], ",", paste0("s", spec), ",", up.down, ").")
-      } else {
-        # Build logical abundance when no significant
-        # abundance.unit<- paste0("abundance(", samps[comparisons[1]], ",", samps[comparisons[2]], ",", paste0("s", spec), ",zero).")
-        abundance.unit <- as.character(NA)
-      }
-    } else {
-      if (any(pair != 0) & exclusion) {
-        # Make table and add margins
-        tab <- as.matrix(rbind(pair, depth - pair))
-        tab <- addmargins(A = tab, margin = seq_along(dim(tab)))
-
-        # Do the chisq test
-        tst <- suppressWarnings(chisq.test(tab))
-        if (tst[3] < 0.05) {
-          # If it is significant establish the up and down
-          if (pair[1] / depth[1] < pair[2] / depth[2]) {
-            up.down <- "app"
-          } else {
-            up.down <- "dis"
-          }
-          # Build logic abundance input
-          abundance.unit <- paste0("abundance(", samps[comparisons[1]], ",", samps[comparisons[2]], ",", paste0("s", spec), ",", up.down, ").")
-        } else {
-          # Build logic abundance when no significant
-          # abundance.unit<- paste0("abundance(", samps[comparisons[1]], ",", samps[comparisons[2]], ",", paste0("s", spec), ",zero).")
-          abundance.unit <- as.character(NA)
-        }
-      } else {
-        abundance.unit <- as.character(NA)
-      }
-    }
-  } else {
-    abundance.unit <- as.character(NA)
-  }
-  return(abundance.unit)
-}
-
-
-getObservations <- function(tb, depth = NULL, exclusion, cores = 1) {
-  if (is.null(depth)) {
-    # Obtain read depth
-    read.depth <- colSums(tb)
-  } else {
-    read.depth <- depth
-  }
-  pathogen <- NULL
-  if (any(rownames(tb) == "pathogen")) {
-    pathogen <- tb["pathogen", , drop = FALSE]
-    tb <- tb[rownames(tb) != "pathogen", ]
-    tb <- data.frame(apply(tb, c(1, 2), as.numeric))
-  }
-
-  # All samples to compare
-  comparisons <- combn(seq_len(ncol(tb)), 2, NULL, FALSE)
-
-  # Add the opposite direction
-  other.direction <- lapply(comparisons, function(x) {
-    c(x[2], x[1])
-  })
-  comparisons <- c(comparisons, other.direction)
-
-  # Run pairwise test function for all species
-  abundance <- parallel::mclapply(seq_len(nrow(tb)), function(i) {
-    # Run pairwise
-    abundance.specie <- vapply(comparisons, abundanceChi, tb, i, colnames(tb), as.numeric(read.depth), exclusion, FUN.VALUE = character(1))
-    # Delete NAs
-    abundance.specie <- abundance.specie[!is.na(abundance.specie)]
-    return(abundance.specie)
-    # Number of cores
-  }, mc.cores = cores)
-
-  # Unlist and return
-  abundance <- unlist(abundance)
-
-  if (!is.null(pathogen)) {
-    pathogen <- apply(pathogen, c(1, 2), function(x) {
-      x <- as.numeric(x)
-      x <- ifelse(is.na(x), 0, x)
-      return(x)
-    })
-
-    abundance <- c(abundance, getObservationsQpcr(pathogen, exclusion))
-  }
-
-  return(abundance)
-}
-
-getObservationsQpcr <- function(qpcr.mat, exclusion = FALSE) {
-
-  # Compare all qpcr samples
-  comparisons <- combn(seq_len(ncol(qpcr.mat)), 2, NULL, FALSE)
-  # Add the opposite direction
-  other.direction <- lapply(comparisons, function(x) {
-    c(x[2], x[1])
-  })
-  comparisons <- c(comparisons, other.direction)
-
-  # Sample names
-  sn <- colnames(qpcr.mat)
-
-  log.qpcr <- log(qpcr.mat)
-  log.qpcr[log.qpcr == -Inf] <- 0
-
-  # For each comparison
-  qpcr.abundance <- vapply(comparisons, function(x) {
-    # Subset pair of samples
-    psamp <- log.qpcr[, x]
-    abundance.unit <- as.character(NA)
-    if (all(psamp != 0)) {
-      # If log samp1 is 0.05 smaller than samp2
-      if (abs(psamp[1] - psamp[2]) > 0.05 & psamp[1] < psamp[2]) {
-        abundance.unit <- paste0("abundance(", sn[x[1]], ",", sn[x[2]], ",", rownames(qpcr.mat), ",up).")
-      }
-      # If log samp1 is 0.5 bigger than samp2
-      if (abs(psamp[1] - psamp[2]) > 0.05 & psamp[1] > psamp[2]) {
-        abundance.unit <- paste0("abundance(", sn[x[1]], ",", sn[x[2]], ",", rownames(qpcr.mat), ",down).")
-      }
-    } else {
-      if (exclusion) {
-        if (psamp[1] == 0 & psamp[2] > 0) {
-          abundance.unit <- paste0("abundance(", sn[x[1]], ",", sn[x[2]], ",", rownames(qpcr.mat), ",app).")
-        }
-        if (psamp[1] > 0 & psamp[2] == 0) {
-          abundance.unit <- paste0("abundance(", sn[x[1]], ",", sn[x[2]], ",", rownames(qpcr.mat), ",dis).")
-        }
-      }
-    }
-
-    return(abundance.unit)
-  }, FUN.VALUE = character(1))
-  # Delete NAs
-  qpcr.abundance <- qpcr.abundance[!is.na(qpcr.abundance)]
-  return(qpcr.abundance)
-}
-
-getPresence <- function(tb) {
-  # Iterate by ASV table rows
-  presence <- lapply(seq_len(nrow(tb)), function(x) {
-
-    # Check presence in each sample
-    yes.no <- ifelse(as.numeric(tb[x, ]) > 0, "yes", "no")
-
-    # Build character vector
-    presence <- paste0("presence(", colnames(tb), ",", rownames(tb)[x], ",", unname(yes.no), ").")
-    return(presence)
-  })
-  return(unlist(presence))
-}
-
-
-formatOutput <- function(abduced.tables) {
-
-  # Split effect and species
-  eff <- vapply(strsplit(abduced.tables[, 1], split = "\\("), function(x) x[1], FUN.VALUE = character(1))
-  s1 <- vapply(strsplit(abduced.tables[, 1], split = "\\("), function(x) x[2], character(1))
-  s2 <- vapply(strsplit(s1, split = ","), function(x) x[2], character(1))
-
-  # Format species
-  s2 <- gsub(")", "", s2)
-  s1 <- vapply(strsplit(s1, split = ","), function(x) x[1], character(1))
-
-  # Create data.frame
-  df <- data.frame(s1, s2, eff, abduced.tables[, 2], stringsAsFactors = FALSE)
-  colnames(df) <- c("sp1", "sp2", "lnk", "comp")
-  df$comp <- as.numeric(df$comp)
-  return(df)
-}
-
-normaliseCompression <- function(abduced.table, presence) {
-  presence <- strsplit(presence, ",")
-  yes.no <- gsub(").", "", vapply(presence, function(x) {
-    x[3]
-  }, FUN.VALUE = character(1)))
-  samp <- gsub("presence\\(", "", vapply(presence, function(x) {
-    x[1]
-  }, FUN.VALUE = character(1)))
-  spec <- vapply(presence, function(x) {
-    x[2]
-  }, character(1))
-  no.table <- table(paste0(spec, yes.no))
-
-  spec <- spec[yes.no == "yes"]
-  samp <- samp[yes.no == "yes"]
-
-  cooc <- character()
-  for (z in seq_len(length(unique(samp)))) {
-    sm <- samp[samp == unique(samp)[z]]
-    if (length(sm) > 1) {
-      sm.spec <- spec[samp == sm[1]]
-      cmb <- t(combn(sm.spec, 2))
-      cooc <- c(cooc, paste(cmb[, 1], cmb[, 2], sep = ""), paste(cmb[, 2], cmb[, 1], sep = ""))
-    }
-  }
-  coo.tab <- table(cooc)
-  abduced.table[, 4] <- apply(abduced.table, 1, function(x) {
-    as.numeric(x[4]) * abs(log(coo.tab[paste0(x[1], x[2])] / no.table[paste0(x[1], "no")]))
-  })
-  abduced.table[is.na(abduced.table[, 4]), 4] <- 0
-  return(abduced.table)
-}
-
-Abduce <- function(bottom, hypothesis, abundance = NULL) {
-  if (is.null(abundance)) {
-    abundance <- bottom$abundance
+abduce <- function(bottom_clauses, hypothesis, head_clauses = NULL) {
+  if (is.null(head_clauses)) {
+    head_clauses <- bottom_clauses$head
   }
 
   # Define abducibles
@@ -294,7 +26,8 @@ Abduce <- function(bottom, hypothesis, abundance = NULL) {
   loadInfIntE()
 
   # Execute abduction using InfIntE
-  coverage <- abduction(bottom$clauses, abducible, positive_example_list = abundance, constant_set = bottom$const, meta_rule = hypothesis, metric = "predictive_power")
+  coverage <- abduction(bottom_clauses$clauses, abducible, positive_example_list = head_clauses,
+                        constant_set = bottom_clauses$const, meta_rule = hypothesis, metric = "predictive_power")
 
   # Extract compression values from python object
   compressions <- vapply(names(coverage), function(x) {
@@ -310,63 +43,60 @@ Abduce <- function(bottom, hypothesis, abundance = NULL) {
   return(coverage)
 }
 
-getBottom <- function(tb, depth = NULL, exclusion = FALSE, cores = 1, qpcr = NULL, search.depth = 2) {
-  if (!is.null(qpcr)) {
-    qpcr <- matrix(qpcr, nrow = 1)
-    rownames(qpcr) <- "pathogen"
-    tb <- rbind(tb, qpcr)
-  }
+get_bottom_clause <- function(otu_data, head_clauses, body_clauses, search.depth = 2, cores = 1) {
 
-  # Get observations and presence
-  abundance <- getObservations(tb, depth, exclusion, cores)
-  presence <- getPresence(tb)
   # Get constants
-  const <- c("yes", "no", "up", "down", "app", "dis")
-  const <- c(const, rownames(tb))
+  const <- vapply(c(head_clauses, body_clauses), function(clau){
+              last_particle<- unlist(strsplit(clau, ","))
+              last_particle<- last_particle[length(last_particle)]
+              last_particle<- gsub(").", "", last_particle)
+  }, FUN.VALUE = character(1))
+  const<- unique(unname(const))
 
-  presence1 <- gsub("presence", "presence1", presence)
+  const <- c(const, rownames(otu_data$otu_tb))
+  body1_clauses <- gsub("presence", "presence1", body_clauses)
 
   # Source InfIntE
   loadInfIntE()
 
   # Generate bottom clauses
-  P <- generate_bottom_clause(c(presence, presence1), const, abundance, NULL, container = "memory", depth = search.depth)
+  P <- generate_bottom_clause(c(body_clauses, body1_clauses), const, head_clauses,
+                              NULL, container = "memory", depth = search.depth)
 
   # Format bottom clause
   P <- reticulate::dict(P, convert = TRUE)
 
   # Create and object with all the elements necessaty for abduction
-  tb[is.na(tb)] <- 0
-  bottom <- list(P, abundance, presence, presence1, const, tb)
-  names(bottom) <- c("clauses", "abundance", "presence", "presence1", "const", "table")
+  bottom <- list(P, head_clauses, body_clauses,  const, otu_data$otu_tb)
+  names(bottom) <- c("clauses", "head", "body", "const", "otu_tb")
   return(bottom)
 }
 
-#############################################################################################################
-############################# Bootstrap ##################################################################
-################################################################################################ ################
+pulsar_infinte <- function(sub_otu_tb, lambda, bottom_clauses, hypothesis, exclusion, otu_data) {
 
-InfIntEPulsar <- function(tb, lambda, bot, hypothesis, exclusion, depth = NULL) {
-  # Subset depth
-  if (!is.null(depth)) {
-    depth <- depth[rownames(tb)]
-  } else {
-    depth <- rowSums(tb)
-  }
-  snames <- row.names(bot$table)
-  # Get observations from subsampled table
-  bot$abundance <- getObservations(t(data.frame(tb)), depth = depth, exclusion = exclusion)
-  # Abduce
-  ab <- Abduce(bottom = bot, hypothesis = hypothesis)
+  sub_otu_tb<- t(sub_otu_tb)
+  # Get head clauses from sub sampled table
 
-  # Obtain final value
-  abduced.table <- plyr::ddply(ab, .(sp1, sp2, lnk), summarise, comp = max(comp))
-  abduced.table <- plyr::ddply(abduced.table, .(sp1, sp2), summarise, lnk = lnk[comp == max(comp)][1], comp = if (length(comp) > 1) {
-    max(comp) - min(comp)
-  } else {
-    comp
+  comparisons<- get_comparsions(ncol(sub_otu_tb))
+  sub_depth<- otu_data$depth[colnames(sub_otu_tb)]
+
+  #Head
+  head_clauses<- lapply(rownames(sub_otu_tb), function(otu){
+    pos<- which(rownames(sub_otu_tb) == otu)
+    abundances<- do.call(what = otu_data$abundance_function[pos],
+                         args = list("otu_abundance"=sub_otu_tb[pos,,drop=FALSE],
+                                      "comparisons"=comparisons, "depth"=sub_depth, "exclusion"=exclusion))
+    return(abundances)
   })
+  head_clauses<- unlist(head_clauses)
 
+  #Abduce
+  abduced <- abduce(bottom = bottom_clauses, hypothesis = hypothesis)
+
+  #Get I values
+  abduced.table<- get_I_values(abduced)
+
+  snames<- rownames(otu_data$otu_tb)
   # Add non interacting asvs
   noi.asvs <- snames[!snames %in% unique(c(abduced.table$sp1, abduced.table$sp2))]
   noi.tab <- data.frame(noi.asvs, noi.asvs, rep("no_effect", length(noi.asvs)), rep(0, length(noi.asvs)))
@@ -393,77 +123,81 @@ InfIntEPulsar <- function(tb, lambda, bot, hypothesis, exclusion, depth = NULL) 
 
 
 
-InfIntE <- function(otu.table, hypothesis, thresh = 0.01, exclusion = FALSE, qpcr = NULL, depth = NULL, nperms = 50, search.depth = 2) {
-  tb <- otu.table
+infinte <- function(otu_tb, hypothesis, thresh = 0.01, exclusion = FALSE, nperms = 50, search.depth = 2, qpcr = NULL, depth = NULL, absolute_abundance=NULL) {
 
-  # Check ASV tables
-  tb <- checkASVtable(tb)
+  # Join absolute and compositional data in a table
+  otu_data<- join_abundances(otu_tb, absolute_abundance, depth)
 
-  # Save given ASV and sample names
-  asv.names <- rownames(tb)
-  sample.names <- colnames(tb)
+  # All possible pairs of samples
+  comparisons<- get_comparsions(length(otu_data$samp_names))
 
-  # Set simplified names
-  rownames(tb) <- paste0("s", seq_len(nrow(tb)))
-  names(asv.names) <- paste0("s", seq_len(nrow(tb)))
 
-  colnames(tb) <- paste0("c", seq_len(ncol(tb)))
+  #Get head logic clauses
+  head_clauses<- lapply(rownames(otu_data$otu_tb), function(otu){
+    pos<- which(rownames(otu_data$otu_tb) == otu)
+    abundances<- do.call(what = otu_data$abundance_function[pos],
+                         args = list("otu_abundance"=otu_data$otu_tb[pos,,drop=FALSE],
+                         "comparisons"=comparisons, "depth"=otu_data$depth, "exclusion"=exclusion))
+    return(abundances)
+  })
+  head_clauses<- unlist(head_clauses)
 
-  names(depth) <- colnames(tb)
+  #Get Body logic clauses
+  body_clauses<- get_presence(otu_data$otu_tb)
 
   # Produce bottom clause
-  bot <- getBottom(tb, exclusion = exclusion, qpcr = qpcr, depth = depth, search.depth = search.depth)
-  tb <- bot$table
+  bottom_clauses <- get_bottom_clause(otu_data = otu_data, head_clauses = head_clauses, body_clauses = body_clauses)
 
-  # Get final values
-  ab <- Abduce(bottom = bot, hypothesis = hypothesis)
+  # Abduce effects
+  abduced_effects <- abduce(bottom = bottom_clauses, hypothesis = hypothesis)
 
-  # Obtain final value
-  ab <- plyr::ddply(ab, .(sp1, sp2, lnk), summarise, comp = max(comp))
-  ab <- plyr::ddply(ab, .(sp1, sp2), summarise, lnk = lnk[comp == max(comp)][1], comp = if (length(comp) > 1) {
-    max(comp) - min(comp)
-  } else {
-    comp
-  })
+  #Get I values
+  abduced_effects<- get_I_values(abduced_effects)
 
   # Length observations
-  mx <- length(bot$abundance)
+  mx <- length(bottom_clauses$head)
 
   # Lambda distribution
   lambda <- pulsar::getLamPath(max = mx, min = 0, 50, FALSE)
 
   # Pulsar execution
-  pr <- pulsar::pulsar(t(tb), InfIntEPulsar, fargs = list(lambda = lambda, bot = bot, hypothesis = hypothesis, exclusion = exclusion, depth = depth), rep.num = nperms, lb.stars = TRUE, ub.stars = TRUE, thresh = thresh)
+  pulsar_output <- pulsar::pulsar(t(otu_data$otu_tb), fun = pulsar_infinte,
+                       fargs = list(lambda = lambda, bottom_clauses = bottom_clauses, hypothesis = hypothesis, exclusion = exclusion, otu_data=otu_data),
+                       rep.num = nperms, lb.stars = TRUE, ub.stars = TRUE, thresh = thresh)
 
   # Format output to dataframe
-  fit.p <- pulsar::refit(pr, criterion = "stars")
+  fitted_model <- pulsar::refit(pulsar_output, criterion = "stars")
+  interactions <- data.frame(igraph::get.edgelist(igraph::graph_from_adjacency_matrix(fitted_model$refit$stars)))
 
-  df <- data.frame(igraph::get.edgelist(igraph::graph_from_adjacency_matrix(fit.p$refit$stars)))
-  df <- ab[paste0(ab[, 1], ab[, 2]) %in% paste0(df[, 1], df[, 2]), ]
+  # Take values from abduced effects dataframe
+  interactions <- abduced_effects[paste0(abduced_effects[, 1], abduced_effects[, 2]) %in% paste0(interactions[, 1], interactions[, 2]), ]
 
-  df <- classifyInteraction(df)
-  df<- return_names(df, asv.names)
-  resul <- list(selected_interactions = returnNames(df, asv.names), pulsar_result = pr, abduced_table = returnNames(ab, asv.names))
+  # Classify ad give bac original names
+  interactions <- classifyInteraction(interactions)
+  interactions<- return_names(interactions, otu_data$otu_names)
 
-  return(resul)
+  # Prepare output object
+  infinte_output <- list(selected_interactions = interactions, pulsar_result = pulsar_output, abduced_table = return_names(abduced_effects, otu_data$otu_names))
+
+  return(infinte_output)
 }
 
 ##############################################################################
 ############################# Classify interactions #########################
 #############################################################################
-classifyInteraction <- function(tb) {
-  right <- paste0(tb[, 1], tb[, 2])
-  oposite <- paste0(tb[, 2], tb[, 1])
+classifyInteraction <- function(effect_table) {
+  right <- paste0(effect_table[, 1], effect_table[, 2])
+  oposite <- paste0(effect_table[, 2], effect_table[, 1])
 
   interactions <- vapply(right, function(x) {
     if (any(oposite == x)) {
       if (which(oposite == x) < which(right == x)) {
-        int <- paste0(tb[which(right == x), 3], "/", tb[which(oposite == x), 3])
+        int <- paste0(effect_table[which(right == x), 3], "/", effect_table[which(oposite == x), 3])
       } else {
         int <- "take_out"
       }
     } else {
-      int <- tb[which(right == x), 3]
+      int <- effect_table[which(right == x), 3]
     }
   }, FUN.VALUE = character(1))
 
@@ -474,22 +208,9 @@ classifyInteraction <- function(tb) {
   interactions <- gsub("^effect_down$", "amensalism", interactions)
   interactions <- gsub("^effect_up$", "commensalism", interactions)
 
-  tb[, 3] <- interactions
-  tb <- tb[tb[, 3] != "take_out", ]
+  effect_table[, 3] <- interactions
+  effect_table <- effect_table[effect_table[, 3] != "take_out", ]
 
-  return(tb)
+  return(effect_table)
 }
 
-
-assignTaxonomy <- function(tb, phylos) {
-  tx <- data.frame(tax_table(phylos))
-  tx$Genus <- gsub("g__", "", tx$Genus)
-  tx$Species <- gsub("s__", "", tx$Species)
-
-  ge <- paste0(tx$Genus, " ", tx$Species)
-  names(ge) <- rownames(tx)
-
-  tb[, 1:2] <- apply(tb[, 1:2], c(1, 2), function(x) {
-
-  })
-}
