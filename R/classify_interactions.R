@@ -15,8 +15,10 @@ classify_interactions <- function(effect_table) {
   interactions <- vapply(right, function(x) {
     if (any(oposite == x)) {
       if (which(oposite == x) < which(right == x)) {
-        int <- paste0(effect_table[which(right == x), 3], "/",
-                      effect_table[which(oposite == x), 3])
+        int <- paste0(
+          effect_table[which(right == x), 3], "/",
+          effect_table[which(oposite == x), 3]
+        )
       } else {
         int <- "take_out"
       }
@@ -37,4 +39,3 @@ classify_interactions <- function(effect_table) {
 
   return(effect_table)
 }
-

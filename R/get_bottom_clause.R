@@ -25,7 +25,7 @@ get_bottom_clause <- function(otu_data, head_clauses, body_clauses, search.depth
   body1_clauses <- gsub("presence", "presence1", body_clauses)
 
   # Source InfIntE
-  loadInfIntE()
+  load_PyGol()
 
   # Generate bottom clauses
   P <- generate_bottom_clause(c(body_clauses, body1_clauses), const, head_clauses,

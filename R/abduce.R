@@ -21,7 +21,7 @@ abduce <- function(bottom_clauses, hypothesis, head_clauses = NULL) {
   abducible <- c("effect_up", "effect_down")
 
   # Source python function
-  loadInfIntE()
+  load_PyGol()
 
   # Execute abduction using InfIntE
   coverage <- abduction(bottom_clauses$clauses, abducible,
