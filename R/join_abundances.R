@@ -11,7 +11,7 @@
 #' join_abundances(otu_tb, absolute_abundance, depth = NULL)
 join_abundances <- function(otu_tb, absolute_abundance, depth = NULL) {
   change_position <- nrow(otu_tb)
-
+  end_position<- 0
   if (!is.null(absolute_abundance) & !is.null(otu_tb)) {
 
     # Join tables
