@@ -1,5 +1,5 @@
 
-from pygolm_V1 import *
+from pygol_V1 import *
 
 """
 def dany():
