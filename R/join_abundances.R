@@ -24,7 +24,7 @@ join_abundances <- function(otu_tb, absolute_abundance, depth = NULL) {
   if (is.null(otu_tb)) {
     change_position <- 0
     otu_tb <- absolute_abundance
-    end_postion <- nrow(otu_tb)
+    end_position <- nrow(otu_tb)
   }
 
   # Save given OTU and sample names
