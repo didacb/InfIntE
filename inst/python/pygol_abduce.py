@@ -1,5 +1,5 @@
 
-from pygol_V1 import *
+from pygol import *
 
 """
 def dany():

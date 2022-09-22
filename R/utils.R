@@ -99,17 +99,29 @@ get_comparsions <- function(n_samples) {
 #' @examples
 #' load_PyGol()
 load_PyGol <- function() {
-  # package.location<-  system.file(package = "InfIntE-nets")
-  package.location <- "~/Desktop/InfIntE/str"
+  package.location<-  system.file(package = "InfIntE")
+  python.file<- file.path(package.location, "python", "pygol_abduce.py")
   current_wd <- getwd()
-  setwd(package.location)
+  
+  #install python3-dev 
+  #install cython 
+  setwd(file.path(package.location, "python"))
+  
+  if(!file.exists(file.path(package.location, "python", "pygol.so"))){
+    
+    python.ver<- system2("python3", "--version", stdout = TRUE)
+    
+    system2("gcc", args = paste("-I", "/usr/include/python3.8", "-c", "-fPIC", "pygol.c", "-o" ,"pygol.o", sep = " "))
+    system2("gcc", args = c( "pygol.o", "-shared", "-o", "pygol.so")) 
+  }    
+    
+  
+  
 
-  # reticulate::use_python(system2("which", "python3", stdout = TRUE))
+  reticulate::use_python(system2("which", "python3", stdout = TRUE))
 
-  reticulate::use_python("/usr/bin/python3")
-
-  reticulate::source_python(file.path(package.location, "pygolm_abduce.py"),
-    envir = globalenv()
+  
+  reticulate::source_python(python.file,envir = globalenv()
   )
   setwd(current_wd)
   on.exit(setwd(current_wd))
