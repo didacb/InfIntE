@@ -9,8 +9,8 @@
 #' get_I_values(abduced)
 get_I_values <- function(abduced) {
   # Obtain final value
-  abduced <- plyr::ddply(.data = abduced, .variables = (sp1, sp2, lnk), summarise, comp = max(comp))
-  abduced <- plyr::ddply(.data = abduced, .variables = (sp1, sp2), summarise,
+  abduced <- plyr::ddply(abduced, .(sp1, sp2, lnk), summarise, comp = max(comp))
+  abduced <- plyr::ddply(abduced, .(sp1, sp2), summarise,
     lnk = lnk[comp == max(comp)][1], comp = if (length(comp) > 1) {
       max(comp) - min(comp)
     } else {
