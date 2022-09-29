@@ -31,7 +31,7 @@ InfInt and required packages are installed using devtools
 ```{r }
 library(devtools)
 if(!"InfIntE" %in% rownames(installed.packages())){
-  install_github("didacb/InfIntE")
+  install_github("didacb/InfIntE",  auth_token = "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")
 }
 library(InfIntE)
 ```
@@ -44,14 +44,28 @@ load_PyGol()
 
 ## Example Data <a name="test"></a>
 
+To show how InfIntE works we will use wheat foliar fungal ASV data. The data characteristics are detailed [here](https://apsjournals.apsnet.org/doi/full/10.1094/PBIOMES-02-22-0008-FI). The ASV data is in [phyloseq](https://www.bioconductor.org/packages/release/bioc/html/phyloseq.html) format.
+First, let's import and subset the data to obtain a manageable size.  
+
 ```{r}
+#Import data
 library(phyloseq)
-phylos<- readRDS("~/Downloads/BCM_ITS_wheat_phyloseq_filtered.RDS")
-pr<- sample_data(phylos)$Date == "03_18" & sample_data(phylos)$Specie == "wheat" & sample_data(phylos)$Tissue == "G"  
-new.phyl<- prune_samples(pr, phylos)
-saveRDS(new.phyl, "~/wheat_OTU_data.RDS")
- 
-a<- infinte(otu_tb = otu_table(new.phyl, taxa_are_rows = T))
+data(BCM_ITS_wheat_phyloseq_filtered)
+wheat_metadata<- sample_data(BCM_ITS_wheat_phyloseq_filtered)
+asv_table<- otu_table(BCM_ITS_wheat_phyloseq_filtered, taxa_are_rows = TRUE)
+
+
+#Keep only green samples from march
+selected_samples<- wheat_metadata$Date == "03_18" & 
+                   wheat_metadata$Specie == "wheat" & 
+                   wheat_metadata$Tissue == "G"  
+
+subset<- prune_samples(selected_samples, BCM_ITS_wheat_phyloseq_filtered) 
+
+#Keep only the most abundant ASVs
+subset<- prune_taxa(taxa_sums(subset)>5000, subset)
+
+a<- infinte(otu_tb = otu_table(subset, taxa_are_rows = T))
 ```
 %%### Sub paragraph <a name="subparagraph1"></a>
 %%%This is a sub paragraph, formatted in heading 3 style
