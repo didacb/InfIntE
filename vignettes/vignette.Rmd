@@ -1,6 +1,6 @@
 ---
 title: "InfIntE"
-author: "Didac Barroso-Bergada"
+author: ""
 date: "`r Sys.Date()`"
 output: rmarkdown::html_vignette
 vignette: >
@@ -22,55 +22,37 @@ InfIntE stands for Inference of Interactions using Explainable machine learning.
 
 # Table of contents
 1. [Installation](#installation)
-2. [Some paragraph](#paragraph1)
-    1. [Sub paragraph](#subparagraph1)
-3. [Another paragraph](#paragraph2)
+2. [Example Data](#test)
 
 ## Installation <a name="installation"></a>
 
-InfInt and its dependences are installed using devtools
+InfInt and required packages are installed using devtools
 
-```{r}
+```{r }
 library(devtools)
-install_github("didacb/InfIntE", auth_token = "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")
+if(!"InfIntE" %in% rownames(installed.packages())){
+  install_github("didacb/InfIntE")
+}
 library(InfIntE)
 ```
+
+One of the steps of the interaction inference is the abduction. Abduction is performed using PyGol. PyGol is written in c. To compile PyGol and obtain the functions for abduction run: 
 
 ```{r}
 load_PyGol()
 ```
 
-## Some paragraph <a name="paragraph1"></a>
-The first paragraph text
+## Example Data <a name="test"></a>
 
-### Sub paragraph <a name="subparagraph1"></a>
-This is a sub paragraph, formatted in heading 3 style
-
-## Another paragraph <a name="paragra
-
-
-```{r, fig.show='hold'}
-plot(1:10)
-plot(10:1)
+```{r}
+library(phyloseq)
+phylos<- readRDS("~/Downloads/BCM_ITS_wheat_phyloseq_filtered.RDS")
+pr<- sample_data(phylos)$Date == "03_18" & sample_data(phylos)$Specie == "wheat" & sample_data(phylos)$Tissue == "G"  
+new.phyl<- prune_samples(pr, phylos)
+saveRDS(new.phyl, "~/wheat_OTU_data.RDS")
+ 
+a<- infinte(otu_tb = otu_table(new.phyl, taxa_are_rows = T))
 ```
+%%### Sub paragraph <a name="subparagraph1"></a>
+%%%This is a sub paragraph, formatted in heading 3 style
 
-You can enable figure captions by `fig_caption: yes` in YAML:
-
-    output:
-      rmarkdown::html_vignette:
-        fig_caption: yes
-
-Then you can use the chunk option `fig.cap = "Your figure caption."` in **knitr**.
-
-## More Examples
-
-You can write math expressions, e.g. $Y = X\beta + \epsilon$, footnotes^[A footnote here.], and tables, e.g. using `knitr::kable()`.
-
-```{r, echo=FALSE, results='asis'}
-knitr::kable(head(mtcars, 10))
-```
-
-Also a quote using `>`:
-
-> "He who gives up [code] safety for [code] speed deserves neither."
-([via](https://twitter.com/hadleywickham/status/504368538874703872))
