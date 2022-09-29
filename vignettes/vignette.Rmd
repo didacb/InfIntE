@@ -1,6 +1,6 @@
 ---
-title: "Vignette Title"
-author: "Vignette Author"
+title: "InfIntE"
+author: "Didac Barroso-Bergada"
 date: "`r Sys.Date()`"
 output: rmarkdown::html_vignette
 vignette: >
@@ -16,27 +16,38 @@ knitr::opts_chunk$set(
 )
 ```
 
-Vignettes are long form documentation commonly included in packages. Because they are part of the distribution of the package, they need to be as compact as possible. The `html_vignette` output type provides a custom style sheet (and tweaks some options) to ensure that the resulting html is as small as possible. The `html_vignette` format:
+# What is InfIntE?
 
-- Never uses retina figures
-- Has a smaller default figure size
-- Uses a custom CSS stylesheet instead of the default Twitter Bootstrap style
+InfIntE stands for Inference of Interactions using Explainable machine learning. This package uses abundance data to directly infer ecological interactions using PyGol, an Aductive/Inductive logic program. The interactions inferred are directly classified by its interaction type. 
 
-## Vignette Info
+# Table of contents
+1. [Installation](#installation)
+2. [Some paragraph](#paragraph1)
+    1. [Sub paragraph](#subparagraph1)
+3. [Another paragraph](#paragraph2)
 
-Note the various macros within the `vignette` section of the metadata block above. These are required in order to instruct R how to build the vignette. Note that you should change the `title` field and the `\VignetteIndexEntry` to match the title of your vignette.
+## Installation <a name="installation"></a>
 
-## Styles
+InfInt and its dependences are installed using devtools
 
-The `html_vignette` template includes a basic CSS theme. To override this theme you can specify your own CSS in the document metadata as follows:
+```{r}
+library(devtools)
+install_github("didacb/InfIntE", auth_token = "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")
+library(InfIntE)
+```
 
-    output: 
-      rmarkdown::html_vignette:
-        css: mystyles.css
+```{r}
+load_PyGol()
+```
 
-## Figures
+## Some paragraph <a name="paragraph1"></a>
+The first paragraph text
 
-The figure sizes have been customised so that you can easily put two images side-by-side. 
+### Sub paragraph <a name="subparagraph1"></a>
+This is a sub paragraph, formatted in heading 3 style
+
+## Another paragraph <a name="paragra
+
 
 ```{r, fig.show='hold'}
 plot(1:10)

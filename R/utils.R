@@ -102,27 +102,27 @@ load_PyGol <- function() {
   package.location<-  system.file(package = "InfIntE")
   python.file<- file.path(package.location, "python", "pygol_abduce.py")
   current_wd <- getwd()
-  
-  #install python3-dev 
-  #install cython 
+
+  #install python3-dev
+  #install cython
   setwd(file.path(package.location, "python"))
-  
+
+  python.ver<- system2("python3", "--version", stdout = TRUE)
+  python.ver<- gsub(" ", "", python.ver)
+  python.ver<- gsub("P", "p", python.ver)
+  python.ver<- gsub("\\.[1-9]$", "", python.ver)
+
   if(!file.exists(file.path(package.location, "python", "pygol.so"))){
-    
-    python.ver<- system2("python3", "--version", stdout = TRUE)
-    
-    system2("gcc", args = paste("-I", "/usr/include/python3.8", "-c", "-fPIC", "pygol.c", "-o" ,"pygol.o", sep = " "))
-    system2("gcc", args = c( "pygol.o", "-shared", "-o", "pygol.so")) 
-  }    
-    
-  
-  
 
-  reticulate::use_python(system2("which", "python3", stdout = TRUE))
+    system2("gcc", args = paste("-I", paste0("/usr/include/", python.ver), "-c", "-fPIC", "pygolm_V1.c", "-o" ,"pygolm_V1.o", sep = " "))
+    system2("gcc", args = c( "pygolm_V1.o", "-shared", "-o", "pygolm_V1.so"))
+  }
 
-  
-  reticulate::source_python(python.file,envir = globalenv()
-  )
+  reticulate::use_python(system2("which", python.ver, stdout = TRUE))
+
+  reticulate::source_python(python.file, envir = globalenv())
   setwd(current_wd)
   on.exit(setwd(current_wd))
 }
+
+
