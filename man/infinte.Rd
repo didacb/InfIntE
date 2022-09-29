@@ -14,7 +14,8 @@ infinte(
   search.depth = 2,
   hypothesis = NULL,
   depth = NULL,
-  absolute_abundance = NULL
+  absolute_abundance = NULL,
+  ncores = 1
 )
 }
 \arguments{
@@ -33,6 +34,8 @@ infinte(
 \item{depth}{numeric vector containing an alternative sequence depth in case the compositional OTU table is a subset of one with more OTUs}
 
 \item{absolute_abundance}{data frame with the absolute counts with samples on columns and OTUs in rows.}
+
+\item{ncores}{number of cores used by pulsar}
 }
 \value{
 list with the infinite output. Contains a data frame with the interactions inferred by InfIntE, the pulsar output and the abduction output.

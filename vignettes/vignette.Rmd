@@ -23,6 +23,8 @@ InfIntE stands for Inference of Interactions using Explainable machine learning.
 # Table of contents
 1. [Installation](#installation)
 2. [Example Data](#test)
+2. [Interaction Inference](#net)
+
 
 ## Installation <a name="installation"></a>
 
@@ -55,18 +57,120 @@ wheat_metadata<- sample_data(BCM_ITS_wheat_phyloseq_filtered)
 asv_table<- otu_table(BCM_ITS_wheat_phyloseq_filtered, taxa_are_rows = TRUE)
 
 
-#Keep only green samples from march
+#Keep only green samples from may
 selected_samples<- wheat_metadata$Date == "03_18" & 
                    wheat_metadata$Specie == "wheat" & 
-                   wheat_metadata$Tissue == "G"  
+                   wheat_metadata$Tissue == "G" 
 
-subset<- prune_samples(selected_samples, BCM_ITS_wheat_phyloseq_filtered) 
+asv_subset<- prune_samples(selected_samples, BCM_ITS_wheat_phyloseq_filtered) 
 
 #Keep only the most abundant ASVs
-subset<- prune_taxa(taxa_sums(subset)>5000, subset)
-
-a<- infinte(otu_tb = otu_table(subset, taxa_are_rows = T))
+asv_subset<- prune_taxa(taxa_sums(asv_subset)>1000, asv_subset)
 ```
-%%### Sub paragraph <a name="subparagraph1"></a>
-%%%This is a sub paragraph, formatted in heading 3 style
+
+The wheat fungal community has many different fungal genus represented
+
+```{r}
+plot_bar(asv_subset, fill = "Genus")
+```
+## Interaction Inference  <a name="net"></a>
+
+To infer interactions, InfIntE offers an homonimous function to perform the whole pipeline in a single step
+
+```{r}
+#Infer interactions
+interactions<- infinte(otu_tb = otu_table(asv_subset, taxa_are_rows = T), ncores = 25)
+
+#Plot network
+network_graph<- igraph::graph_from_data_frame(interactions$selected_interactions)
+plot(network_graph)
+```
+## Step by step  <a name="steps"></a>
+
+```{r}
+infinte <- function(otu_tb, thresh = 0.01, exclusion = FALSE, nperms = 50, search.depth = 2, hypothesis=NULL, depth = NULL, absolute_abundance = NULL, ncores=1) 
+
+  
+hypothesis<- c("abundance(C1,C2,S1,up):-presence(C2,S2,yes)&presence1(C1,S2,no)&effect_up(S2,S1)",
+               "abundance(C1,C2,S1,app):-presence(C2,S2,yes)&presence1(C1,S2,no)&effect_up(S2,S1)",
+               "abundance(C1,C2,S1,down):-presence(C2,S2,yes)&presence1(C1,S2,no)&effect_down(S2,S1)",
+               "abundance(C1,C2,S1,dis):-presence(C2,S2,yes)&presence1(C1,S2,no)&effect_down(S2,S1)")
+
+
+# Join absolute and compositional data in a table
+otu_data <- join_abundances(otu_tb, absolute_abundance, depth)
+
+# All possible pairs of samples
+comparisons <- get_comparsions(length(otu_data$samp_names))
+
+
+# Get head logic clauses
+head_clauses <- lapply(rownames(otu_data$otu_tb), function(otu) {
+  pos <- which(rownames(otu_data$otu_tb) == otu)
+  abundances <- do.call(
+    what = otu_data$abundance_function[pos],
+    args = list(
+      "otu_abundance" = otu_data$otu_tb[pos, , drop = FALSE],
+      "comparisons" = comparisons, "depth" = otu_data$depth, "exclusion" = exclusion
+    )
+  )
+  return(abundances)
+})
+head_clauses <- unlist(head_clauses)
+
+# Get Body logic clauses
+body_clauses <- get_presence(otu_data)
+```
+
+
+```{r}  
+
+# Produce bottom clause
+bottom_clauses <- get_bottom_clause(otu_data = otu_data,
+                                    head_clauses = head_clauses, body_clauses = body_clauses)
+
+# Abduce effects
+abduced_effects <- abduce(bottom = bottom_clauses, hypothesis = hypothesis)
+
+# Get I values
+abduced_effects <- get_I_values(abduced_effects)
+
+```
+
+```{r}
+
+# Length observations
+mx <- length(bottom_clauses$head)
+
+# Lambda distribution
+lambda <- pulsar::getLamPath(max = mx, min = 0, 50, FALSE)
+
+# Pulsar execution
+pulsar_output <- pulsar::pulsar(t(otu_data$otu_tb),
+  fun = pulsar_infinte,
+  fargs = list(lambda = lambda, bottom_clauses = bottom_clauses,
+               hypothesis = hypothesis, exclusion = exclusion, otu_data = otu_data),
+  rep.num = nperms, lb.stars = TRUE, ub.stars = TRUE, thresh = thresh, ncores = ncores,
+)
+
+# Format output to dataframe
+fitted_model <- pulsar::refit(pulsar_output, criterion = "stars")
+interactions <- data.frame(igraph::get.edgelist(igraph::graph_from_adjacency_matrix(fitted_model$refit$stars)))
+```
+
+```{r}
+  # Take values from abduced effects dataframe
+  interactions <- abduced_effects[paste0(abduced_effects[, 1], abduced_effects[, 2])
+                                  %in% paste0(interactions[, 1], interactions[, 2]), ]
+
+  # Classify and give back original names
+  interactions <- classify_interactions(interactions)
+  interactions <- return_names(interactions, otu_data$otu_names)
+
+  # Prepare output object
+  infinte_output <- list(selected_interactions = interactions,
+                         pulsar_result = pulsar_output,
+                         abduced_table = return_names(abduced_effects, otu_data$otu_names))
+
+```
 

@@ -11,13 +11,14 @@
 #' @param depth numeric vector containing an alternative sequence depth in case the compositional OTU table is a subset of one with more OTUs
 #' @param hypothesis character vector where each element relates the different observations produced by the get_observation functions.
 #' @param absolute_abundance data frame with the absolute counts with samples on columns and OTUs in rows.
+#' @param ncores number of cores used by pulsar
 #'
 #' @return list with the infinite output. Contains a data frame with the interactions inferred by InfIntE, the pulsar output and the abduction output.
 #' @export
 #'
 #' @examples
 #' infinte(otu_tb, hypothesis, thresh = 0.01, exclusion = FALSE, nperms = 50, search.depth = 2, depth = NULL, absolute_abundance = NULL)
-infinte <- function(otu_tb, thresh = 0.01, exclusion = FALSE, nperms = 50, search.depth = 2, hypothesis=NULL, depth = NULL, absolute_abundance = NULL) {
+infinte <- function(otu_tb, thresh = 0.01, exclusion = FALSE, nperms = 50, search.depth = 2, hypothesis=NULL, depth = NULL, absolute_abundance = NULL, ncores=1) {
 
   if(is.null(hypothesis)){
     if (exclusion){
@@ -76,7 +77,7 @@ infinte <- function(otu_tb, thresh = 0.01, exclusion = FALSE, nperms = 50, searc
     fun = pulsar_infinte,
     fargs = list(lambda = lambda, bottom_clauses = bottom_clauses,
                  hypothesis = hypothesis, exclusion = exclusion, otu_data = otu_data),
-    rep.num = nperms, lb.stars = TRUE, ub.stars = TRUE, thresh = thresh
+    rep.num = nperms, lb.stars = TRUE, ub.stars = TRUE, thresh = thresh, ncores = ncores,
   )
 
   # Format output to dataframe
@@ -87,8 +88,8 @@ infinte <- function(otu_tb, thresh = 0.01, exclusion = FALSE, nperms = 50, searc
   interactions <- abduced_effects[paste0(abduced_effects[, 1], abduced_effects[, 2])
                                   %in% paste0(interactions[, 1], interactions[, 2]), ]
 
-  # Classify ad give bac original names
-  interactions <- classifyInteraction(interactions)
+  # Classify and give back original names
+  interactions <- classify_interactions(interactions)
   interactions <- return_names(interactions, otu_data$otu_names)
 
   # Prepare output object
