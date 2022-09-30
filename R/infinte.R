@@ -5,7 +5,7 @@
 #' The InfIne inference process parses the OTU data into logic clauses and performs the abduction of interactions using PyGol. Interactions are selected using pulsar.
 #' @param otu_tb data frame with the OTUs counts with samples on columns and OTUs in rows.
 #' @param thresh numeric threshold for StARS model selection in pulsar, default is 0.01
-#' @param exclusion logical indicating if exclusion cases have to be considered for generating the logic clauses. Default is FALSE.
+#' @param exclusion logical indicating if exclusion cases have to be considered for generating the logic clauses. Default is TRUE.
 #' @param nperms  numeric number of subsamples in pulsar, default is 50
 #' @param search.depth numeric search depth when producing constructing the bottom clauses, default is 2
 #' @param depth numeric vector containing an alternative sequence depth in case the compositional OTU table is a subset of one with more OTUs
@@ -17,8 +17,8 @@
 #' @export
 #'
 #' @examples
-#' infinte(otu_tb, hypothesis, thresh = 0.01, exclusion = FALSE, nperms = 50, search.depth = 2, depth = NULL, absolute_abundance = NULL)
-infinte <- function(otu_tb, thresh = 0.01, exclusion = FALSE, nperms = 50, search.depth = 2, hypothesis=NULL, depth = NULL, absolute_abundance = NULL, ncores=1) {
+#' infinte(otu_tb, hypothesis, thresh = 0.01, exclusion = TRUE, nperms = 50, search.depth = 2, depth = NULL, absolute_abundance = NULL)
+infinte <- function(otu_tb, thresh = 0.01, exclusion = TRUE, nperms = 50, search.depth = 2, hypothesis=NULL, depth = NULL, absolute_abundance = NULL, ncores=1) {
 
   if(is.null(hypothesis)){
     if (exclusion){

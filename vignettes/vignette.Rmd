@@ -4,7 +4,7 @@ author: ""
 date: "`r Sys.Date()`"
 output: rmarkdown::html_vignette
 vignette: >
-  %\VignetteIndexEntry{Vignette Title}
+  %\VignetteIndexEntry{InfIntE}
   %\VignetteEngine{knitr::rmarkdown}
   %\VignetteEncoding{UTF-8}
 ---
@@ -30,7 +30,7 @@ InfIntE stands for Inference of Interactions using Explainable machine learning.
 
 InfInt and required packages are installed using devtools
 
-```{r }
+```{r,results='hide', message=FALSE, warning=FALSE}
 library(devtools)
 if(!"InfIntE" %in% rownames(installed.packages())){
   install_github("didacb/InfIntE",  auth_token = "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")
@@ -40,7 +40,7 @@ library(InfIntE)
 
 One of the steps of the interaction inference is the abduction. Abduction is performed using PyGol. PyGol is written in c. To compile PyGol and obtain the functions for abduction run: 
 
-```{r}
+```{r, results='hide', message=FALSE, warning=FALSE}
 load_PyGol()
 ```
 
@@ -49,20 +49,21 @@ load_PyGol()
 To show how InfIntE works we will use wheat foliar fungal ASV data. The data characteristics are detailed [here](https://apsjournals.apsnet.org/doi/full/10.1094/PBIOMES-02-22-0008-FI). The ASV data is in [phyloseq](https://www.bioconductor.org/packages/release/bioc/html/phyloseq.html) format.
 First, let's import and subset the data to obtain a manageable size.  
 
-```{r}
+```{r, results='hide', message=FALSE, warning=FALSE}
 #Import data
 library(phyloseq)
-data(BCM_ITS_wheat_phyloseq_filtered)
-wheat_metadata<- sample_data(BCM_ITS_wheat_phyloseq_filtered)
-asv_table<- otu_table(BCM_ITS_wheat_phyloseq_filtered, taxa_are_rows = TRUE)
+data(BCM_16S_wheat_phyloseq_filtered)
+wheat_metadata<- sample_data(BCM_16S_wheat_phyloseq_filtered)
+asv_table<- otu_table(BCM_16S_wheat_phyloseq_filtered, taxa_are_rows = TRUE)
 
 
 #Keep only green samples from may
 selected_samples<- wheat_metadata$Date == "03_18" & 
                    wheat_metadata$Specie == "wheat" & 
-                   wheat_metadata$Tissue == "G" 
+                   wheat_metadata$Variety == "Apa" &
+                    wheat_metadata$Tissue == "G" 
 
-asv_subset<- prune_samples(selected_samples, BCM_ITS_wheat_phyloseq_filtered) 
+asv_subset<- prune_samples(selected_samples, BCM_16S_wheat_phyloseq_filtered) 
 
 #Keep only the most abundant ASVs
 asv_subset<- prune_taxa(taxa_sums(asv_subset)>1000, asv_subset)
@@ -70,35 +71,59 @@ asv_subset<- prune_taxa(taxa_sums(asv_subset)>1000, asv_subset)
 
 The wheat fungal community has many different fungal genus represented
 
-```{r}
-plot_bar(asv_subset, fill = "Genus")
+```{r,results='hide', message=FALSE, warning=FALSE, out.width = "800px"}
+library(ggplot2)
+plot_bar(asv_subset, fill = "Genus")+theme(axis.text.x = element_blank())
 ```
+
 ## Interaction Inference  <a name="net"></a>
 
-To infer interactions, InfIntE offers an homonimous function to perform the whole pipeline in a single step
+To infer interactions, InfIntE offers an homonymous function to perform the whole pipeline in a single step
 
-```{r}
+```{r, results='hide', message=FALSE, warning=FALSE}
+library(igraph)
 #Infer interactions
-interactions<- infinte(otu_tb = otu_table(asv_subset, taxa_are_rows = T), ncores = 25)
+interactions<- infinte(otu_tb = otu_table(asv_subset, taxa_are_rows = T), exclusion = TRUE, ncores = 25)
 
-#Plot network
-network_graph<- igraph::graph_from_data_frame(interactions$selected_interactions)
-plot(network_graph)
+#Get network
+network_graph<-graph_from_data_frame(interactions$selected_interactions)
+
+a<-interactions$selected_interactions
+#Change ASV names to genus
+V(network_graph)$name<- data.frame(tax_table(asv_subset))[V(network_graph)$name,]$Genus
+
+#Add color to different interactions
+library(RColorBrewer)
+colors_edges<- brewer.pal(5, "Set2")
+
+E(network_graph)$color<- sapply(E(network_graph)$lnk, function(x){
+                                  colors_edges[which(unique(E(network_graph)$lnk)==x)]    
+                                })
+
+#Plot
+set.seed(123)
+lay <- layout.kamada.kawai(network_graph)
+plot(network_graph, layout=lay, vertex.size=2)
 ```
+
 ## Step by step  <a name="steps"></a>
 
-```{r}
-infinte <- function(otu_tb, thresh = 0.01, exclusion = FALSE, nperms = 50, search.depth = 2, hypothesis=NULL, depth = NULL, absolute_abundance = NULL, ncores=1) 
+But what InfIntE exactly does? It uses an hypothesis of interaction written as a logical relation between presence, abundance and effects in abundance.
 
-  
+```{r}
+
 hypothesis<- c("abundance(C1,C2,S1,up):-presence(C2,S2,yes)&presence1(C1,S2,no)&effect_up(S2,S1)",
                "abundance(C1,C2,S1,app):-presence(C2,S2,yes)&presence1(C1,S2,no)&effect_up(S2,S1)",
                "abundance(C1,C2,S1,down):-presence(C2,S2,yes)&presence1(C1,S2,no)&effect_down(S2,S1)",
                "abundance(C1,C2,S1,dis):-presence(C2,S2,yes)&presence1(C1,S2,no)&effect_down(S2,S1)")
 
+```
 
+Then transforms the OTU matrix into logic clauses related by the hypothesis
+
+```{R}
 # Join absolute and compositional data in a table
-otu_data <- join_abundances(otu_tb, absolute_abundance, depth)
+otu_data <- join_abundances(otu_tb=otu_table(asv_subset, taxa_are_rows = T), absolute_abundance=NULL)
 
 # All possible pairs of samples
 comparisons <- get_comparsions(length(otu_data$samp_names))
@@ -106,22 +131,26 @@ comparisons <- get_comparsions(length(otu_data$samp_names))
 
 # Get head logic clauses
 head_clauses <- lapply(rownames(otu_data$otu_tb), function(otu) {
-  pos <- which(rownames(otu_data$otu_tb) == otu)
-  abundances <- do.call(
-    what = otu_data$abundance_function[pos],
-    args = list(
-      "otu_abundance" = otu_data$otu_tb[pos, , drop = FALSE],
-      "comparisons" = comparisons, "depth" = otu_data$depth, "exclusion" = exclusion
+    pos <- which(rownames(otu_data$otu_tb) == otu)
+    abundances <- do.call(
+      what = otu_data$abundance_function[pos],
+      args = list(
+        "otu_abundance" = otu_data$otu_tb[pos, , drop = FALSE],
+        "comparisons" = comparisons, "depth" = otu_data$depth, "exclusion" = TRUE
+      )
     )
-  )
-  return(abundances)
-})
+    return(abundances)
+  })
+
 head_clauses <- unlist(head_clauses)
 
 # Get Body logic clauses
 body_clauses <- get_presence(otu_data)
+
+data.frame(matrix(sample(head_clauses,20), ncol = 2))
 ```
 
+It uses PyGol to generate the bottom clause and abduce the effects on the OTU abundance caused by other OTUs. InfIntE renames the ASVs during the abduction optimize process.
 
 ```{r}  
 
@@ -135,8 +164,10 @@ abduced_effects <- abduce(bottom = bottom_clauses, hypothesis = hypothesis)
 # Get I values
 abduced_effects <- get_I_values(abduced_effects)
 
+abduced_effects[1:10,]
 ```
 
+To select the interactions InfIntE uses the [pulsar](https://github.com/zdk123/pulsar) package to run the [StARS](https://www.ncbi.nlm.nih.gov/pmc/articles/PMC4138724/) model selection
 ```{r}
 
 # Length observations
@@ -149,28 +180,49 @@ lambda <- pulsar::getLamPath(max = mx, min = 0, 50, FALSE)
 pulsar_output <- pulsar::pulsar(t(otu_data$otu_tb),
   fun = pulsar_infinte,
   fargs = list(lambda = lambda, bottom_clauses = bottom_clauses,
-               hypothesis = hypothesis, exclusion = exclusion, otu_data = otu_data),
-  rep.num = nperms, lb.stars = TRUE, ub.stars = TRUE, thresh = thresh, ncores = ncores,
+               hypothesis = hypothesis, exclusion = TRUE, otu_data = otu_data),
+  rep.num = 50, lb.stars = TRUE, ub.stars = TRUE, thresh = 0.01, ncores = 25,
 )
 
 # Format output to dataframe
 fitted_model <- pulsar::refit(pulsar_output, criterion = "stars")
 interactions <- data.frame(igraph::get.edgelist(igraph::graph_from_adjacency_matrix(fitted_model$refit$stars)))
+
+interactions[1:10,]
 ```
 
+
+As a last step InfIntE classifies the interactions by its type
 ```{r}
-  # Take values from abduced effects dataframe
-  interactions <- abduced_effects[paste0(abduced_effects[, 1], abduced_effects[, 2])
-                                  %in% paste0(interactions[, 1], interactions[, 2]), ]
+# Take values from abduced effects dataframe
+interactions <- abduced_effects[paste0(abduced_effects[, 1], abduced_effects[, 2])
+                                %in% paste0(interactions[, 1], interactions[, 2]), ]
 
-  # Classify and give back original names
-  interactions <- classify_interactions(interactions)
-  interactions <- return_names(interactions, otu_data$otu_names)
+# Classify and give back original names
+interactions <- classify_interactions(interactions)
+interactions <- return_names(interactions, otu_data$otu_names)
 
-  # Prepare output object
-  infinte_output <- list(selected_interactions = interactions,
-                         pulsar_result = pulsar_output,
-                         abduced_table = return_names(abduced_effects, otu_data$otu_names))
+
+#Get network
+network_graph<-graph_from_data_frame(interactions)
+
+#Change ASV names to genus
+V(network_graph)$name<- data.frame(tax_table(asv_subset))[V(network_graph)$name,]$Genus
+
+#Add color to different interactions
+library(RColorBrewer)
+colors_edges<- brewer.pal(5, "Set2")
+
+E(network_graph)$color<- sapply(E(network_graph)$lnk, function(x){
+                                  colors_edges[which(unique(E(network_graph)$lnk)==x)]    
+                                })
+
+#Plot
+set.seed(123)
+lay <- layout.kamada.kawai(network_graph)
+plot(network_graph, layout=lay, vertex.size=2)
 
 ```
+
+
 
