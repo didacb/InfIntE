@@ -2,6 +2,7 @@
 #' Generate logical clauses depicting the absolute abundance change between two samples for each OTU.
 #' @param otu_abundance list joining all the OTU information. Obtained using the join_abundances function.
 #' @param comparisons list with the position of the pairs of samples to compare.
+#' @param depth numeric vector with the sequencing depth
 #' @param exclusion logical indicating if exclusion cases have to be considered for generating the logic clauses. Default is FALSE.
 #'
 #' @return character vector with the abundance clauses describing the absolute abundance change between samples.
@@ -9,7 +10,7 @@
 #'
 #' @examples
 #' get_absolute_observations(otu_abundance, comparisons)
-get_absolute_observations <- function(otu_abundance, comparisons, exclusion = FALSE) {
+get_absolute_observations <- function(otu_abundance, comparisons, depth, exclusion = FALSE) {
   samps <- colnames(otu_abundance)
   spec <- rownames(otu_abundance)
 
