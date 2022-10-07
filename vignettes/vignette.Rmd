@@ -18,52 +18,56 @@ knitr::opts_chunk$set(
 
 # What is InfIntE?
 
-InfIntE stands for Inference of Interactions using Explainable machine learning. This package uses abundance data to directly infer ecological interactions using PyGol, an Aductive/Inductive logic program. The interactions inferred are directly classified by its interaction type. 
+InfIntE stands for Inference of Interactions using Explainable machine learning. This package uses abundance data to directly infer ecological interactions using PyGol, an Abductive/Inductive logic program, classified by their interaction type. 
 
 # Table of contents
 1. [Installation](#installation)
 2. [Example Data](#test)
-2. [Interaction Inference](#net)
-
+3. [Interaction Inference](#net)
+4. [Step by Step](#step)
+5. [Use of absolute data](#absl)
 
 ## Installation <a name="installation"></a>
 
-InfInt and required packages are installed using devtools
+InfIntE and required packages are installed using devtools
 
 ```{r,results='hide', message=FALSE, warning=FALSE}
 library(devtools)
 if(!"InfIntE" %in% rownames(installed.packages())){
-  install_github("didacb/InfIntE",  auth_token = "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")
+  install_github("didacb/InfIntE")
 }
 library(InfIntE)
 ```
 
-One of the steps of the interaction inference is the abduction. Abduction is performed using PyGol. PyGol is written in c. To compile PyGol and obtain the functions for abduction run: 
+Interaction inference uses the logical inference process of abduction. Abduction is performed using PyGol. PyGol is written in c. To compile PyGol and obtain the functions for abduction run: 
 
 ```{r, results='hide', message=FALSE, warning=FALSE}
 load_PyGol()
 ```
 
+Currently PyGol only works in linux environments. It is necessary that the following linux packages are installed to avoid problems of compilation:
+
+- cython
+- python-dev
+
 ## Example Data <a name="test"></a>
 
-To show how InfIntE works we will use wheat foliar fungal ASV data. The data characteristics are detailed [here](https://apsjournals.apsnet.org/doi/full/10.1094/PBIOMES-02-22-0008-FI). The ASV data is in [phyloseq](https://www.bioconductor.org/packages/release/bioc/html/phyloseq.html) format.
+We illustrate how InfIntE works using wheat foliar fungal ASV data. The data characteristics are detailed [here](https://apsjournals.apsnet.org/doi/full/10.1094/PBIOMES-02-22-0008-FI). The ASV data is in [phyloseq](https://www.bioconductor.org/packages/release/bioc/html/phyloseq.html) format.
 First, let's import and subset the data to obtain a manageable size.  
 
 ```{r, results='hide', message=FALSE, warning=FALSE}
 #Import data
 library(phyloseq)
-data(BCM_16S_wheat_phyloseq_filtered)
-wheat_metadata<- sample_data(BCM_16S_wheat_phyloseq_filtered)
-asv_table<- otu_table(BCM_16S_wheat_phyloseq_filtered, taxa_are_rows = TRUE)
+data("BCM_16S_wheat_phyloseq_filtered_lulu")
+wheat_metadata<- sample_data(BCM_16S_wheat_phyloseq_filtered_lulu)
 
-
-#Keep only green samples from may
+#Keep only green samples from march
 selected_samples<- wheat_metadata$Date == "03_18" & 
                    wheat_metadata$Specie == "wheat" & 
                    wheat_metadata$Variety == "Apa" &
                     wheat_metadata$Tissue == "G" 
 
-asv_subset<- prune_samples(selected_samples, BCM_16S_wheat_phyloseq_filtered) 
+asv_subset<- prune_samples(selected_samples, BCM_16S_wheat_phyloseq_filtered_lulu) 
 
 #Keep only the most abundant ASVs
 asv_subset<- prune_taxa(taxa_sums(asv_subset)>1000, asv_subset)
@@ -78,17 +82,17 @@ plot_bar(asv_subset, fill = "Genus")+theme(axis.text.x = element_blank())
 
 ## Interaction Inference  <a name="net"></a>
 
-To infer interactions, InfIntE offers an homonymous function to perform the whole pipeline in a single step
+To infer interactions, InfIntE offers a homonymous function to perform the whole pipeline, from an OUT abundance table to abduced ecological interactions, in a single run.
 
 ```{r, results='hide', message=FALSE, warning=FALSE}
 library(igraph)
 #Infer interactions
-interactions<- infinte(otu_tb = otu_table(asv_subset, taxa_are_rows = T), exclusion = TRUE, ncores = 25)
+interactions<- infinte(otu_tb = otu_table(asv_subset, taxa_are_rows = T),
+                       exclusion = TRUE, ncores = 25)
 
 #Get network
 network_graph<-graph_from_data_frame(interactions$selected_interactions)
 
-a<-interactions$selected_interactions
 #Change ASV names to genus
 V(network_graph)$name<- data.frame(tax_table(asv_subset))[V(network_graph)$name,]$Genus
 
@@ -99,31 +103,33 @@ colors_edges<- brewer.pal(5, "Set2")
 E(network_graph)$color<- sapply(E(network_graph)$lnk, function(x){
                                   colors_edges[which(unique(E(network_graph)$lnk)==x)]    
                                 })
-
 #Plot
 set.seed(123)
 lay <- layout.kamada.kawai(network_graph)
-plot(network_graph, layout=lay, vertex.size=2)
+plot(network_graph, layout=lay, vertex.size=2, 
+     vertex.label.cex = 0.75, edge.arrow.size=0.5 )
 ```
 
 ## Step by step  <a name="steps"></a>
 
-But what InfIntE exactly does? It uses an hypothesis of interaction written as a logical relation between presence, abundance and effects in abundance.
+But, what does InfIntE do, exactly, to learn interactions? InfIntE uses an hypothesis of interaction written as a logical relation between OTU/ASV presence, abundance and effects, as changes in OUT/ASV abundance.
 
-```{r}
+```{r, results='hide', message=FALSE, warning=FALSE}
 
-hypothesis<- c("abundance(C1,C2,S1,up):-presence(C2,S2,yes)&presence1(C1,S2,no)&effect_up(S2,S1)",
-               "abundance(C1,C2,S1,app):-presence(C2,S2,yes)&presence1(C1,S2,no)&effect_up(S2,S1)",
-               "abundance(C1,C2,S1,down):-presence(C2,S2,yes)&presence1(C1,S2,no)&effect_down(S2,S1)",
-               "abundance(C1,C2,S1,dis):-presence(C2,S2,yes)&presence1(C1,S2,no)&effect_down(S2,S1)")
+hypothesis<- 
+c("abundance(C1,C2,S1,up):-presence(C2,S2,yes)&presence1(C1,S2,no)&effect_up(S2,S1)",
+  "abundance(C1,C2,S1,app):-presence(C2,S2,yes)&presence1(C1,S2,no)&effect_up(S2,S1)",
+  "abundance(C1,C2,S1,down):-presence(C2,S2,yes)&presence1(C1,S2,no)&effect_down(S2,S1)",
+  "abundance(C1,C2,S1,dis):-presence(C2,S2,yes)&presence1(C1,S2,no)&effect_down(S2,S1)")
 
 ```
 
-Then transforms the OTU matrix into logic clauses related by the hypothesis
+It then transforms the ASV matrix into logic clauses related by the hypothesis
 
-```{R}
+```{r, message=FALSE, warning=FALSE}
 # Join absolute and compositional data in a table
-otu_data <- join_abundances(otu_tb=otu_table(asv_subset, taxa_are_rows = T), absolute_abundance=NULL)
+otu_data <- join_abundances(otu_tb=otu_table(asv_subset, taxa_are_rows = T),
+                            absolute_abundance = NULL, depth = NULL)
 
 # All possible pairs of samples
 comparisons <- get_comparsions(length(otu_data$samp_names))
@@ -147,28 +153,30 @@ head_clauses <- unlist(head_clauses)
 # Get Body logic clauses
 body_clauses <- get_presence(otu_data)
 
-data.frame(matrix(sample(head_clauses,20), ncol = 2))
+head(body_clauses)
 ```
 
-It uses PyGol to generate the bottom clause and abduce the effects on the OTU abundance caused by other OTUs. InfIntE renames the ASVs during the abduction optimize process.
+Then, PyGol is used to generate the bottom clause and abduce the effects on the OTU abundance caused by other ASVs. InfIntE renames the ASVs during the abduction optimize process.
 
-```{r}  
+```{r,message=FALSE, warning=FALSE}  
 
 # Produce bottom clause
 bottom_clauses <- get_bottom_clause(otu_data = otu_data,
-                                    head_clauses = head_clauses, body_clauses = body_clauses)
+                                    head_clauses = head_clauses, 
+                                    body_clauses = body_clauses)
 
 # Abduce effects
 abduced_effects <- abduce(bottom = bottom_clauses, hypothesis = hypothesis)
 
 # Get I values
-abduced_effects <- get_I_values(abduced_effects)
+abduced_effects <- get_I_values(abduced_effects)#Infer interactions
 
-abduced_effects[1:10,]
+
+head(abduced_effects)
 ```
 
-To select the interactions InfIntE uses the [pulsar](https://github.com/zdk123/pulsar) package to run the [StARS](https://www.ncbi.nlm.nih.gov/pmc/articles/PMC4138724/) model selection
-```{r}
+To select important interactions, InfIntE uses the [pulsar](https://github.com/zdk123/pulsar) package to run the [StARS](https://www.ncbi.nlm.nih.gov/pmc/articles/PMC4138724/) model selection.
+```{r, message=FALSE, warning=FALSE}
 
 # Length observations
 mx <- length(bottom_clauses$head)
@@ -186,14 +194,15 @@ pulsar_output <- pulsar::pulsar(t(otu_data$otu_tb),
 
 # Format output to dataframe
 fitted_model <- pulsar::refit(pulsar_output, criterion = "stars")
-interactions <- data.frame(igraph::get.edgelist(igraph::graph_from_adjacency_matrix(fitted_model$refit$stars)))
+interactions <- data.frame(igraph::get.edgelist(
+                    igraph::graph_from_adjacency_matrix(fitted_model$refit$stars)))
 
-interactions[1:10,]
+head(interactions)
 ```
 
 
-As a last step InfIntE classifies the interactions by its type
-```{r}
+As a final step, InfIntE classifies the interactions by their type.
+```{r, results='hide', message=FALSE, warning=FALSE}
 # Take values from abduced effects dataframe
 interactions <- abduced_effects[paste0(abduced_effects[, 1], abduced_effects[, 2])
                                 %in% paste0(interactions[, 1], interactions[, 2]), ]
@@ -220,9 +229,42 @@ E(network_graph)$color<- sapply(E(network_graph)$lnk, function(x){
 #Plot
 set.seed(123)
 lay <- layout.kamada.kawai(network_graph)
-plot(network_graph, layout=lay, vertex.size=2)
+plot(network_graph, layout=lay, vertex.size=2, 
+     vertex.label.cex = 0.75, edge.arrow.size=0.5 )
 
 ```
 
+## Use of absolute data  <a name="absl"></a>
+
+
+InfIntE can also use absolute abundance data, complementing the compositional data obtained from eDNA. In this example we use the qPCR measurements of the pathogen *Z. tritici* available in the metadata.
+
+```{r, results='hide', message=FALSE, warning=FALSE, out.width="90%", out.height="90%"}
+
+#Retrieve absolute abundance
+absolute_abundance<- t(data.frame(sample_data(asv_subset))[,7,drop=FALSE])
+absolute_abundance<- ifelse(is.na(absolute_abundance),0,absolute_abundance)
+#Infer interactions
+interactions<- infinte(otu_tb = otu_table(asv_subset, 
+                                          taxa_are_rows = T), ncores = 25,
+                      absolute_abundance = absolute_abundance, exclusion = TRUE)
+#Get network
+network_graph<-graph_from_data_frame(interactions$selected_interactions)
+#Change ASV names to genus
+zymo.pos<- grep("Zymoseptoria", V(network_graph)$name)
+
+V(network_graph)$name<- data.frame(tax_table(asv_subset))[V(network_graph)$name,]$Genus
+V(network_graph)$name[zymo.pos]<- "Zymoseptoria"
+#Add color to different interactions
+library(RColorBrewer)
+colors_edges<- brewer.pal(5, "Set2")
+E(network_graph)$color<- sapply(E(network_graph)$lnk, function(x){
+                                  colors_edges[which(unique(E(network_graph)$lnk)==x)]})
+#Plot
+set.seed(123)
+lay <- layout.kamada.kawai(network_graph)
+plot(network_graph, layout=lay, vertex.size=2, 
+     vertex.label.cex = 0.75, edge.arrow.size=0.5 )
+```
 
 

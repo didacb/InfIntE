@@ -112,7 +112,7 @@ load_PyGol <- function() {
   python.ver<- gsub("P", "p", python.ver)
   python.ver<- gsub("\\.[1-9]$", "", python.ver)
 
-  if(!file.exists(file.path(package.location, "python", "pygol.so"))){
+  if(!file.exists(file.path(package.location, "python", "pygolm_V1.so"))){
 
     system2("gcc", args = paste("-I", paste0("/usr/include/", python.ver), "-c", "-fPIC", "pygolm_V1.c", "-o" ,"pygolm_V1.o", sep = " "))
     system2("gcc", args = c( "pygolm_V1.o", "-shared", "-o", "pygolm_V1.so"))
