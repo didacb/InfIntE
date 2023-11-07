@@ -110,7 +110,7 @@ load_PyGol <- function() {
   python.ver<- system2("python3", "--version", stdout = TRUE)
   python.ver<- gsub(" ", "", python.ver)
   python.ver<- gsub("P", "p", python.ver)
-  python.ver<- gsub("\\.[1-9]$", "", python.ver)
+  python.ver<- gsub("\\.[1-9][1-9]$", "", python.ver)
 
   if(!file.exists(file.path(package.location, "python", "pygolm_V1.so"))){
 
@@ -119,7 +119,6 @@ load_PyGol <- function() {
   }
 
   reticulate::use_python(system2("which", python.ver, stdout = TRUE))
-
   reticulate::source_python(python.file, envir = globalenv())
   setwd(current_wd)
   on.exit(setwd(current_wd))
