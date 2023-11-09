@@ -64,5 +64,5 @@ pulsar_infinte <- function(sub_otu_tb, lambda, bottom_clauses, hypothesis, exclu
     return(tmp)
   })
   # Return the path over lambda
-  return(pt)
+  return(list(path = pt))
 }
