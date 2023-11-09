@@ -61,7 +61,7 @@ infinte <- function(otu_tb, thresh = 0.01, exclusion = TRUE, nperms = 50, search
                                       head_clauses = head_clauses, body_clauses = body_clauses)
 
   # Abduce effects
-  abduced_effects <- abduce(bottom = bottom_clauses, hypothesis = hypothesis)
+  abduced_effects <- abduce(bottom = bottom_clauses, hypothesis = hypothesis, head_clauses = head_clauses)
 
   # Get I values
   abduced_effects <- get_I_values(abduced_effects)
@@ -70,14 +70,14 @@ infinte <- function(otu_tb, thresh = 0.01, exclusion = TRUE, nperms = 50, search
   mx <- length(bottom_clauses$head)
 
   # Lambda distribution
-  lambda <- pulsar::getLamPath(max = mx, min = 0, 50, FALSE)
+  lambda <- pulsar::getLamPath(max = mx, min = 0, len = nperms)
 
   # Pulsar execution
   pulsar_output <- pulsar::pulsar(t(otu_data$otu_tb),
     fun = pulsar_infinte,
     fargs = list(lambda = lambda, bottom_clauses = bottom_clauses,
                  hypothesis = hypothesis, exclusion = exclusion, otu_data = otu_data),
-    rep.num = nperms, lb.stars = TRUE, ub.stars = TRUE, thresh = thresh, ncores = ncores,
+    rep.num = nperms, lb.stars = FALSE, ub.stars = FALSE, thresh = thresh, ncores = ncores
   )
 
   # Format output to dataframe
