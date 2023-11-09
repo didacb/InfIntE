@@ -49,28 +49,20 @@ pulsar_infinte <- function(sub_otu_tb, lambda, bottom_clauses, hypothesis, exclu
   colnames(noi.tab) <- colnames(abduced.table)
   abduced.table <- rbind(abduced.table, noi.tab)
   
-  #abduced.table[abduced.table[,4] == 0,4] <- 1
-  
-  #abduced.table[,4] <- abduced.table[,4]/mx
-  
   # Construct adjacency matrix
   g <- igraph::graph_from_data_frame(abduced.table[, c(1, 2, 4)])
   ad <- igraph::as_adj(g, attr = "comp")
   #ad[upper.tri(ad)]<- ad[lower.tri(ad)]
-  #adn<- matrix(ad, nrow = length(V(g)$name))
-  #colnames(adn)<- colnames(ad)
-  #rownames(adn)<- rownames(ad)
+  
   # For each lambda
   pt <- lapply(lambda, function(lam) {
     # Compression bigger than lambda
     tmp <- ad > lam
-    #ga <- igraph::graph_from_adjacency_matrix(tmp)
-    #tmp <- igraph::get.adjacency(ga, sparse = TRUE)
-
     diag(tmp) <- FALSE
+    
     tmp<- as(tmp, "lMatrix")
     return(tmp)
   })
   # Return the path over lambda
-  return(list(path = pt))
+  return(pt)
 }
