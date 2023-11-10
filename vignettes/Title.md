@@ -1,4 +1,4 @@
-Tutorial
+InfIntE
 ================
 
 # What is InfIntE?
