@@ -39,7 +39,7 @@ join_abundances <- function(otu_tb, absolute_abundance, depth = NULL) {
   otu_tb <- check_OTU_table(otu_tb)
 
   if (is.null(depth) & !is.null(otu_tb)) {
-    depth <- colSums(otu_tb[1:change_position, ])
+    depth <- colSums(otu_tb[seq_len(change_position), ])
   }
 
   abundance_function <- c(
