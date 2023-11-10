@@ -299,4 +299,4 @@ plot(network_graph, layout=lay, vertex.size=2,
      vertex.label.cex = 0.75, edge.arrow.size=0.5 )
 ```
 
-<img src="Title_files/figure-gfm/unnamed-chunk-11-1.png" width="90%" height="90%" />
+<img src="vignettes/Title_files/figure-gfm/unnamed-chunk-11-1.png" width="90%" height="90%" />
