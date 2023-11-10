@@ -1,22 +1,9 @@
 ---
-title: "InfIntE"
-author: ""
-date: "`r Sys.Date()`"
-output: 
-  md_document:
-    variant: markdown_github
-vignette: >
-  %\VignetteIndexEntry{InfIntE}
-  %\VignetteEngine{knitr::rmarkdown}
-  %\VignetteEncoding{UTF-8}
+title: "Tutorial"
+output: github_document
+
 ---
 
-```{r setup, include = FALSE}
-knitr::opts_chunk$set(
-  collapse = TRUE,
-  comment = "#>"
-)
-```
 
 # What is InfIntE?
 
@@ -33,18 +20,17 @@ InfIntE stands for Inference of Interactions using Explainable machine learning.
 
 InfIntE and required packages are installed using devtools
 
-```{r,results='hide', message=FALSE, warning=FALSE}
+```{r,results='hide', message=FALSE, warning=FALSE, eval=FALSE}
 library(devtools)
 if(!"InfIntE" %in% rownames(installed.packages())){
   install_github("didacb/InfIntE")
 }
-library(InfIntE)
 ```
 
 Interaction inference uses the logical inference process of abduction. Abduction is performed using PyGol. PyGol is written in c. To compile PyGol and obtain the functions for abduction run: 
 
-```{r, results='hide', message=FALSE, warning=FALSE}
-#load_PyGol()
+```{r, results='hide', message=FALSE, warning=FALSE,eval=FALSE}
+load_PyGol()
 ```
 
 Currently PyGol only works in linux environments. It is necessary that the following linux packages are installed to avoid problems of compilation:
@@ -54,12 +40,14 @@ Currently PyGol only works in linux environments. It is necessary that the follo
 
 ## Example Data <a name="test"></a>
 
-We illustrate how InfIntE works using wheat foliar fungal ASV data. The data characteristics are detailed [here](https://apsjournals.apsnet.org/doi/full/10.1094/PBIOMES-02-22-0008-FI). The ASV data is in [phyloseq](https://www.bioconductor.org/packages/release/bioc/html/phyloseq.html) format.
+We illustrate how InfIntE works using wheat foliar bacterial ASV data. The data characteristics are detailed [here](https://apsjournals.apsnet.org/doi/full/10.1094/PBIOMES-02-22-0008-FI). The ASV data is in [phyloseq](https://www.bioconductor.org/packages/release/bioc/html/phyloseq.html) format.
 First, let's import and subset the data to obtain a manageable size.  
 
 ```{r, results='hide', message=FALSE, warning=FALSE}
 #Import data
+library(InfIntE)
 library(phyloseq)
+
 data("BCM_16S_wheat_phyloseq_filtered_lulu")
 wheat_metadata<- sample_data(BCM_16S_wheat_phyloseq_filtered_lulu)
 
@@ -75,7 +63,7 @@ asv_subset<- prune_samples(selected_samples, BCM_16S_wheat_phyloseq_filtered_lul
 asv_subset<- prune_taxa(taxa_sums(asv_subset)>2000, asv_subset)
 ```
 
-The wheat fungal community has many different fungal genus represented
+The wheat bacterial community has many different bacterial genus represented
 
 ```{r,results='hide', message=FALSE, warning=FALSE, out.width = "800px"}
 library(ggplot2)
@@ -84,7 +72,7 @@ plot_bar(asv_subset, fill = "Genus")+theme(axis.text.x = element_blank())
 
 ## Interaction Inference  <a name="net"></a>
 
-To infer interactions, InfIntE offers a homonymous function to perform the whole pipeline, from an OUT abundance table to abduced ecological interactions, in a single run.
+To infer interactions, InfIntE offers a homonymous function to perform the whole pipeline, from an OTU abundance table to abduced ecological interactions, in a single run.
 
 ```{r, results='hide', message=FALSE, warning=FALSE}
 library(igraph)
@@ -158,7 +146,7 @@ body_clauses <- get_presence(otu_data)
 head(body_clauses)
 ```
 
-Then, PyGol is used to generate the bottom clause and abduce the effects on the OTU abundance caused by other ASVs. InfIntE renames the ASVs during the abduction optimize process.
+Then, PyGol is used to generate the bottom clause and abduce the effects on the OTU abundance caused by other ASVs. InfIntE renames the ASVs during the abduction to optimize process.
 
 ```{r,message=FALSE, warning=FALSE}  
 
@@ -177,7 +165,7 @@ abduced_effects <- get_I_values(abduced_effects)#Infer interactions
 head(abduced_effects)
 ```
 
-To select important interactions, InfIntE uses the [pulsar](https://github.com/zdk123/pulsar) package to run the [StARS](https://www.ncbi.nlm.nih.gov/pmc/articles/PMC4138724/) model selection.
+To select interactions, InfIntE uses the [pulsar](https://github.com/zdk123/pulsar) package to run the [StARS](https://www.ncbi.nlm.nih.gov/pmc/articles/PMC4138724/) model selection.
 ```{r, message=FALSE, warning=FALSE}
 
 # Length observations
