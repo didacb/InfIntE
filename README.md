@@ -80,7 +80,7 @@ library(ggplot2)
 plot_bar(asv_subset, fill = "Genus")+theme(axis.text.x = element_blank())
 ```
 
-<img src="Title_files/figure-gfm/unnamed-chunk-4-1.png" width="800px" />
+<img src="vignettes/Title_files/figure-gfm/unnamed-chunk-4-1.png" width="800px" />
 
 ## Interaction Inference <a name="net"></a>
 
@@ -114,7 +114,7 @@ plot(network_graph, layout=lay, vertex.size=2,
      vertex.label.cex = 0.75, edge.arrow.size=0.5 )
 ```
 
-![](Title_files/figure-gfm/unnamed-chunk-5-1.png)<!-- -->
+![](vignettes/Title_files/figure-gfm/unnamed-chunk-5-1.png)<!-- -->
 
 ## Step by step <a name="steps"></a>
 
@@ -264,7 +264,7 @@ plot(network_graph, layout=lay, vertex.size=2,
      vertex.label.cex = 0.75, edge.arrow.size=0.5 )
 ```
 
-![](Title_files/figure-gfm/unnamed-chunk-10-1.png)<!-- -->
+![](vignettes/Title_files/figure-gfm/unnamed-chunk-10-1.png)<!-- -->
 
 ## Use of absolute data <a name="absl"></a>
 
