@@ -1,0 +1,13 @@
+bibentry(
+  bibtype  = "Incollection",
+  title    = "Unravelling the web of dark interactions: Explainable inference of the diversity of microbial interactions",
+  author   = "Didac Barroso-Bergada and Alireza Tamaddoni-Nezhad and Dany Varghese and Corinne Vacher and Nika Galic and Valérie Laval and Frédéric   Suffert and David A. Bohan",
+  journal  = "Advances in Ecological Research",
+  year     = "2023",
+  volume   = "68",
+  number   = " ",
+  booktitle = "Advances in Ecological Research: Roadmaps: Part A",
+  publisher = "Academic Press",
+  pages    = "155-183",
+  doi      = "10.1016/bs.aecr.2023.09.005"
+)
