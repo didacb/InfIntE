@@ -6,7 +6,15 @@ InfIntE
 InfIntE stands for Inference of Interactions using Explainable machine
 learning. This package uses abundance data to directly infer ecological
 interactions using PyGol, an Abductive/Inductive logic program,
-classified by their interaction type.
+classified by their interaction type. For a detailed explanation of the
+InfIntE procedure and its implementation, please see:
+
+> Barroso-Bergada D, Tamaddoni-Nezhad A, Varghese D, Vacher C, Galic N,
+> Laval V, Suffert F, Bohan DA (2023). “Unravelling the web of dark
+> interactions: Explainable inference of the diversity of microbial
+> interactions.” In *Advances in Ecological Research: Roadmaps: Part A*,
+> volume 68, 155-183. Academic Press.
+> <https://doi.org/10.1016/bs.aecr.2023.09.005>.
 
 # Table of contents
 
@@ -111,7 +119,10 @@ E(network_graph)$color<- sapply(E(network_graph)$lnk, function(x){
 set.seed(123)
 lay <- layout.kamada.kawai(network_graph)
 plot(network_graph, layout=lay, vertex.size=2, 
-     vertex.label.cex = 0.75, edge.arrow.size=0.5 )
+     vertex.label.cex = 0.75, edge.arrow.size=0.5)
+#Add legend
+legend(0.8,1, legend=unique(E(network_graph)$lnk),
+       fill=unique(E(network_graph)$color), cex=0.7)
 ```
 
 ![](Title_files/figure-gfm/unnamed-chunk-5-1.png)<!-- -->
@@ -250,7 +261,6 @@ network_graph<-graph_from_data_frame(interactions)
 V(network_graph)$name<- data.frame(tax_table(asv_subset))[V(network_graph)$name,]$Genus
 
 #Add color to different interactions
-library(RColorBrewer)
 colors_edges<- brewer.pal(5, "Set2")
 
 E(network_graph)$color<- sapply(E(network_graph)$lnk, function(x){
@@ -262,6 +272,9 @@ set.seed(123)
 lay <- layout.kamada.kawai(network_graph)
 plot(network_graph, layout=lay, vertex.size=2, 
      vertex.label.cex = 0.75, edge.arrow.size=0.5 )
+#Add legend
+legend(0.8,1, legend=unique(E(network_graph)$lnk),
+       fill=unique(E(network_graph)$color), cex=0.7)
 ```
 
 ![](Title_files/figure-gfm/unnamed-chunk-10-1.png)<!-- -->
@@ -282,21 +295,26 @@ interactions<- infinte(otu_tb = otu_table(asv_subset,
                       absolute_abundance = absolute_abundance, exclusion = TRUE)
 #Get network
 network_graph<-graph_from_data_frame(interactions$selected_interactions)
-#Change ASV names to genus
+
+#Change Xymoseptoria ASV names to genus
 zymo.pos<- grep("Zymoseptoria", V(network_graph)$name)
 
 V(network_graph)$name<- data.frame(tax_table(asv_subset))[V(network_graph)$name,]$Genus
 V(network_graph)$name[zymo.pos]<- "Zymoseptoria"
+
 #Add color to different interactions
-library(RColorBrewer)
 colors_edges<- brewer.pal(5, "Set2")
 E(network_graph)$color<- sapply(E(network_graph)$lnk, function(x){
                                   colors_edges[which(unique(E(network_graph)$lnk)==x)]})
-#Plot
+#Plot keeping the same layout
 set.seed(123)
-lay <- layout.kamada.kawai(network_graph)
-plot(network_graph, layout=lay, vertex.size=2, 
+lay.zym <- rbind(lay[1:(zymo.pos-1),], c(-0.7,1), lay[(zymo.pos):nrow(lay),])
+
+plot(network_graph, layout=lay.zym, vertex.size=2, 
      vertex.label.cex = 0.75, edge.arrow.size=0.5 )
+#Add legend
+legend(0.6,1, legend=unique(E(network_graph)$lnk),
+       fill=unique(E(network_graph)$color), cex=0.7)
 ```
 
 <img src="Title_files/figure-gfm/unnamed-chunk-11-1.png" width="90%" height="90%" />
