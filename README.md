@@ -88,7 +88,7 @@ library(ggplot2)
 plot_bar(asv_subset, fill = "Genus")+theme(axis.text.x = element_blank())
 ```
 
-<img src="Title_files/figure-gfm/unnamed-chunk-4-1.png" width="800px" />
+<img src="vignettes/Title_files/figure-gfm/unnamed-chunk-4-1.png" width="800px" />
 
 ## Interaction Inference <a name="net"></a>
 
