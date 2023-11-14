@@ -76,7 +76,10 @@ selected_samples<- wheat_metadata$Date == "03_18" &
 
 asv_subset<- prune_samples(selected_samples, BCM_16S_wheat_phyloseq_filtered_lulu) 
 
-#Keep only the most abundant ASVs
+#Obtain the sequencing depth for the whole dataset
+depth<- sample_sums(asv_subset)
+
+#Keep only the most abundant ASVs 
 asv_subset<- prune_taxa(taxa_sums(asv_subset)>2000, asv_subset)
 ```
 
@@ -98,9 +101,9 @@ interactions, in a single run.
 
 ``` r
 library(igraph)
-#Infer interactions
+#Infer interactions using the complete sequencing depth
 interactions<- infinte(otu_tb = data.frame(otu_table(asv_subset, taxa_are_rows = T)),
-                       exclusion = TRUE, ncores = 25, nperms = 50)
+                       exclusion = TRUE, ncores = 25, nperms = 50, depth = depth)
 
 #Get network
 network_graph<-graph_from_data_frame(interactions$selected_interactions)
@@ -116,8 +119,9 @@ E(network_graph)$color<- sapply(E(network_graph)$lnk, function(x){
                                   colors_edges[which(unique(E(network_graph)$lnk)==x)]    
                                 })
 #Plot
-set.seed(123)
 lay <- layout.kamada.kawai(network_graph)
+
+set.seed(123)
 plot(network_graph, layout=lay, vertex.size=2, 
      vertex.label.cex = 0.75, edge.arrow.size=0.5)
 #Add legend
@@ -148,7 +152,7 @@ hypothesis
 ``` r
 # Join absolute and compositional data in a table
 otu_data <- join_abundances(otu_tb=otu_table(asv_subset, taxa_are_rows = T),
-                            absolute_abundance = NULL, depth = NULL)
+                            absolute_abundance = NULL, depth = depth)
 
 # All possible pairs of samples
 comparisons <- get_comparsions(length(otu_data$samp_names))
@@ -199,12 +203,12 @@ head(abduced_effects)
 ```
 
     ##   sp1 sp2         lnk comp
-    ## 1  s1  s1   effect_up 2546
-    ## 2  s1 s10 effect_down   19
-    ## 3  s1 s11 effect_down    5
-    ## 4  s1 s12 effect_down 1204
-    ## 5  s1 s13   effect_up  366
-    ## 6  s1 s14 effect_down   59
+    ## 1  s1  s1   effect_up 2542
+    ## 2  s1 s10   effect_up    7
+    ## 3  s1 s11 effect_down    0
+    ## 4  s1 s12 effect_down  540
+    ## 5  s1 s13   effect_up  363
+    ## 6  s1 s14 effect_down   45
 
 To select interactions, InfIntE uses the
 [pulsar](https://github.com/zdk123/pulsar) package to run the
@@ -268,8 +272,9 @@ E(network_graph)$color<- sapply(E(network_graph)$lnk, function(x){
                                 })
 
 #Plot
-set.seed(123)
 lay <- layout.kamada.kawai(network_graph)
+
+set.seed(123)
 plot(network_graph, layout=lay, vertex.size=2, 
      vertex.label.cex = 0.75, edge.arrow.size=0.5 )
 #Add legend
@@ -290,31 +295,33 @@ measurements of the pathogen *Z. tritici* available in the metadata.
 absolute_abundance<- t(data.frame(sample_data(asv_subset))[,7,drop=FALSE])
 absolute_abundance<- ifelse(is.na(absolute_abundance),0,absolute_abundance)
 #Infer interactions
-interactions<- infinte(otu_tb = otu_table(asv_subset, 
+interactions_z<- infinte(otu_tb = otu_table(asv_subset, 
                                           taxa_are_rows = T), ncores = 25,
-                      absolute_abundance = absolute_abundance, exclusion = TRUE)
-#Get network
-network_graph<-graph_from_data_frame(interactions$selected_interactions)
+                      absolute_abundance = absolute_abundance, exclusion = TRUE, depth = depth)
 
-#Change Xymoseptoria ASV names to genus
-zymo.pos<- grep("Zymoseptoria", V(network_graph)$name)
+network_graph_z<-graph_from_data_frame(interactions_z$selected_interactions)
 
-V(network_graph)$name<- data.frame(tax_table(asv_subset))[V(network_graph)$name,]$Genus
-V(network_graph)$name[zymo.pos]<- "Zymoseptoria"
+#Change Zymoseptoria ASV names to genus
+zymo.pos<- grep("Zymoseptoria", V(network_graph_z)$name)
+
+V(network_graph_z)$name<- data.frame(tax_table(asv_subset))[V(network_graph_z)$name,]$Genus
+V(network_graph_z)$name[zymo.pos]<- "Zymoseptoria"
 
 #Add color to different interactions
 colors_edges<- brewer.pal(5, "Set2")
-E(network_graph)$color<- sapply(E(network_graph)$lnk, function(x){
-                                  colors_edges[which(unique(E(network_graph)$lnk)==x)]})
-#Plot keeping the same layout
-set.seed(123)
-lay.zym <- rbind(lay[1:(zymo.pos-1),], c(-0.7,1), lay[(zymo.pos):nrow(lay),])
+E(network_graph_z)$color<- sapply(E(network_graph_z)$lnk, function(x){
+                                  colors_edges[which(unique(E(network_graph_z)$lnk)==x)]})
 
-plot(network_graph, layout=lay.zym, vertex.size=2, 
+#Reorder the layout to obtain the same vertex position 
+lay.zym <- rbind(lay, c(-1.5,3.5))
+lay.zym<- lay.zym[c(1,2,3,4,5,18,13,6,7,8,9,10,11,12,14,15,16,17),]
+
+set.seed(123)
+plot(network_graph_z, layout=lay.zym, vertex.size=2, 
      vertex.label.cex = 0.75, edge.arrow.size=0.5 )
 #Add legend
-legend(0.6,1, legend=unique(E(network_graph)$lnk),
-       fill=unique(E(network_graph)$color), cex=0.7)
+legend(0.9,1, legend=unique(E(network_graph_z)$lnk),
+       fill=unique(E(network_graph_z)$color), cex=0.7)
 ```
 
 <img src="Title_files/figure-gfm/unnamed-chunk-11-1.png" width="90%" height="90%" />
