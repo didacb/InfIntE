@@ -35,10 +35,10 @@ pulsar_infinte <- function(sub_otu_tb, lambda, bottom_clauses, hypothesis, exclu
   head_clauses <- unlist(head_clauses)
 
   # Abduce
-  abduced <- abduce(bottom_clauses =  bottom_clauses, hypothesis = hypothesis, head_clauses = head_clauses)
+  abduced.table <- abduce(bottom_clauses =  bottom_clauses, hypothesis = hypothesis, head_clauses = head_clauses)
 
   # Get I values
-  abduced.table <- get_I_values(abduced)
+  abduced.table <- get_I_values(abduced.table)
 
   snames <- rownames(otu_data$otu_tb)
   

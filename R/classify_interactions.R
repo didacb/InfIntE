@@ -27,12 +27,7 @@ classify_interactions <- function(effect_table) {
     }
   }, FUN.VALUE = character(1))
 
-  interactions <- gsub("effect_down/effect_down", "Competition", interactions)
-  interactions <- gsub("effect_up/effect_up", "Mutualism", interactions)
-  interactions <- gsub("effect_up/effect_down", "Predation", interactions)
-  interactions <- gsub("effect_down/effect_up", "take_out", interactions)
-  interactions <- gsub("^effect_down$", "Amensalism", interactions)
-  interactions <- gsub("^effect_up$", "Commensalism", interactions)
+  interactions <- gsub("predation/predation", "competition", interactions)
 
   effect_table[, 3] <- interactions
   effect_table <- effect_table[effect_table[, 3] != "take_out", ]

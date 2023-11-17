@@ -23,15 +23,15 @@ get_absolute_observations <- function(otu_abundance, comparisons, depth, exclusi
     pair_samps <- log_abundance[, x]
     abundance_unit <- as.character(NA)
     if (all(pair_samps != 0)) {
-      # If log samp1 is 0.05 smaller than samp2
-      if (abs(pair_samps[1] - pair_samps[2]) > 0.05 & pair_samps[1] < pair_samps[2]) {
+      # If log samp1 is smaller than samp2
+      if (abs(pair_samps[1] - pair_samps[2]) > 0.5 & pair_samps[1] < pair_samps[2]) {
         abundance_unit <- paste0(
           "abundance(", samps[x[1]], ",",
           samps[x[2]], ",", spec, ",up)."
         )
       }
       # If log samp1 is 0.5 bigger than samp2
-      if (abs(pair_samps[1] - pair_samps[2]) > 0.05 & pair_samps[1] > pair_samps[2]) {
+      if (abs(pair_samps[1] - pair_samps[2]) > 0.5 & pair_samps[1] > pair_samps[2]) {
         abundance_unit <- paste0(
           "abundance(", samps[x[1]], ",",
           samps[x[2]], ",", spec, ",down)."

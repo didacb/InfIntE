@@ -18,7 +18,7 @@ abduce <- function(bottom_clauses, hypothesis, head_clauses = NULL) {
   }
 
   # Define abducibles
-  abducible <- c("effect_up", "effect_down")
+  abducible <- c("predation", "no_predation")
 
   # Source python function
   load_PyGol()

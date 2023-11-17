@@ -77,7 +77,7 @@ infinte <- function(otu_tb, thresh = 0.01, exclusion = TRUE, nperms = 50, search
     fun = pulsar_infinte,
     fargs = list(lambda = lambda, bottom_clauses = bottom_clauses,
                  hypothesis = hypothesis, exclusion = exclusion, otu_data = otu_data),
-    rep.num = nperms, lb.stars = FALSE, ub.stars = FALSE, thresh = thresh, ncores = ncores
+    rep.num = nperms, lb.stars = TRUE, ub.stars = TRUE, thresh = 0.1, ncores = ncores
   )
 
   # Format output to dataframe

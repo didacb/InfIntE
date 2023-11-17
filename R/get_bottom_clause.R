@@ -22,13 +22,12 @@ get_bottom_clause <- function(otu_data, head_clauses, body_clauses, search.depth
   const <- unique(unname(const))
 
   const <- c(const, rownames(otu_data$otu_tb))
-  body1_clauses <- gsub("presence", "presence1", body_clauses)
 
   # Source InfIntE
   load_PyGol()
 
   # Generate bottom clauses
-  P <- generate_bottom_clause(c(body_clauses, body1_clauses), const, head_clauses,
+  P <- generate_bottom_clause(body_clauses, const, head_clauses,
     NULL,
     container = "memory", depth = search.depth
   )
