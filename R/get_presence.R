@@ -7,10 +7,7 @@
 #'
 #' @examples
 #' get_presence(otu_data)
-get_presence <- function(otu_data) {
-
-  # Obtain otu table
-  otu_tb <- otu_data$otu_tb
+get_presence <- function(otu_tb) {
 
   # Iterate by ASV table rows
   presence <- lapply(seq_len(nrow(otu_tb)), function(x) {

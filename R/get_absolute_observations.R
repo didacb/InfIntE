@@ -14,24 +14,21 @@ get_absolute_observations <- function(otu_abundance, comparisons, depth, exclusi
   samps <- colnames(otu_abundance)
   spec <- rownames(otu_abundance)
 
-  log_abundance <- log(otu_abundance)
-  log_abundance[log_abundance == -Inf] <- 0
-
   # For each comparison
   abundance_clauses <- vapply(comparisons, function(x) {
     # Subset pair of samples
-    pair_samps <- log_abundance[, x]
+    pair_samps <- otu_abundance[, x]
     abundance_unit <- as.character(NA)
-    if (all(pair_samps != 0)) {
+    if (all(pair_samps != log(0.5))) {
       # If log samp1 is smaller than samp2
-      if (abs(pair_samps[1] - pair_samps[2]) > 0.5 & pair_samps[1] < pair_samps[2]) {
+      if (abs(pair_samps[2] / pair_samps[1]) > 0.3 & pair_samps[1] < pair_samps[2]) {
         abundance_unit <- paste0(
           "abundance(", samps[x[1]], ",",
           samps[x[2]], ",", spec, ",up)."
         )
       }
-      # If log samp1 is 0.5 bigger than samp2
-      if (abs(pair_samps[1] - pair_samps[2]) > 0.5 & pair_samps[1] > pair_samps[2]) {
+      # If log samp1 is bigger than samp2
+      if (abs(pair_samps[1] / pair_samps[2]) > 0.3 & pair_samps[1] > pair_samps[2]) {
         abundance_unit <- paste0(
           "abundance(", samps[x[1]], ",",
           samps[x[2]], ",", spec, ",down)."
@@ -39,13 +36,13 @@ get_absolute_observations <- function(otu_abundance, comparisons, depth, exclusi
       }
     } else {
       if (exclusion) {
-        if (pair_samps[1] == 0 & pair_samps[2] > 0) {
+        if (pair_samps[1] == log(0.5) & pair_samps[2] > log(0.5)) {
           abundance_unit <- paste0(
             "abundance(", samps[x[1]], ",",
             samps[x[2]], ",", spec, ",app)."
           )
         }
-        if (pair_samps[1] > 0 & pair_samps[2] == 0) {
+        if (pair_samps[1] > log(0.5) & pair_samps[2] == log(0.5)) {
           abundance_unit <- paste0(
             "abundance(", samps[x[1]], ",",
             samps[x[2]], ",", spec, ",dis)."

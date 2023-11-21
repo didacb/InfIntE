@@ -15,13 +15,17 @@ get_bottom_clause <- function(otu_data, head_clauses, body_clauses, search.depth
 
   # Get constants
   const <- vapply(c(head_clauses, body_clauses), function(clau) {
+    #Last particle
     last_particle <- unlist(strsplit(clau, ","))
     last_particle <- last_particle[length(last_particle)]
     last_particle <- gsub(").", "", last_particle)
+    #OTUs
+    otus <- unlist(strsplit(clau, ","))
+    otus <- otus[length(otus)-1]
+    otus<- gsub(".*\\(", "", otus)
   }, FUN.VALUE = character(1))
+    
   const <- unique(unname(const))
-
-  const <- c(const, rownames(otu_data$otu_tb))
 
   # Source InfIntE
   load_PyGol()

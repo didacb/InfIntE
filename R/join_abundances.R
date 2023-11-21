@@ -9,7 +9,7 @@
 #'
 #' @examples
 #' join_abundances(otu_tb, absolute_abundance, depth = NULL)
-join_abundances <- function(otu_tb, absolute_abundance, depth = NULL) {
+join_abundances <- function(otu_tb, absolute_abundance, depth = NULL, presence_table=NULL) {
   change_position <- nrow(otu_tb)
   end_position<- 0
   if (!is.null(absolute_abundance) & !is.null(otu_tb)) {
@@ -29,12 +29,23 @@ join_abundances <- function(otu_tb, absolute_abundance, depth = NULL) {
 
   # Save given OTU and sample names
   samp_names <- colnames(otu_tb)
-  otu_names <- rownames(otu_tb)
-
+  if(is.null(presence_table)){
+    otu_names <- rownames(otu_tb)
+  }else{
+    otu_names <- c(rownames(otu_tb), rownames(presence_table))
+  }
+  
   # Set simplified names
   rownames(otu_tb) <- paste0("s", seq_len(nrow(otu_tb)))
   colnames(otu_tb) <- paste0("c", seq_len(ncol(otu_tb)))
-
+  
+  # Set also for presence table
+  if(!is.null(presence_table)){
+    rownames(presence_table) <- paste0("s", (nrow(otu_tb)+1):(nrow(otu_tb)+nrow(presence_table)))
+    colnames(presence_table) <- paste0("c", seq_len(ncol(presence_table)))                                   
+  }
+  
+  
   # Check table
   otu_tb <- check_OTU_table(otu_tb)
 
@@ -52,7 +63,7 @@ join_abundances <- function(otu_tb, absolute_abundance, depth = NULL) {
 
   otu_data <- list(
     "otu_tb" = otu_tb, "otu_names" = otu_names, "samp_names" = samp_names,
-    "depth" = depth, "abundance_function" = abundance_function
+    "depth" = depth, "abundance_function" = abundance_function, "presence_table" = presence_table
   )
   return(otu_data)
 }
