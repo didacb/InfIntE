@@ -11,7 +11,7 @@
 #'
 #' @examples
 #' get_bottom_clause(otu_data, head_clauses, body_clauses)
-get_bottom_clause <- function(otu_data, head_clauses, body_clauses, search.depth = 2) {
+get_bottom_clause <- function(head_clauses, body_clauses, search.depth = 2) {
 
   # Get constants
   const <- vapply(c(head_clauses, body_clauses), function(clau) {
@@ -19,12 +19,17 @@ get_bottom_clause <- function(otu_data, head_clauses, body_clauses, search.depth
     last_particle <- unlist(strsplit(clau, ","))
     last_particle <- last_particle[length(last_particle)]
     last_particle <- gsub(").", "", last_particle)
+  }, FUN.VALUE = character(1))
+    
+  const <- c(const, vapply(c(head_clauses, body_clauses
+                             ), function(clau) {
     #OTUs
     otus <- unlist(strsplit(clau, ","))
     otus <- otus[length(otus)-1]
     otus<- gsub(".*\\(", "", otus)
-  }, FUN.VALUE = character(1))
     
+  }, FUN.VALUE = character(1)))
+  
   const <- unique(unname(const))
 
   # Source InfIntE
@@ -40,7 +45,7 @@ get_bottom_clause <- function(otu_data, head_clauses, body_clauses, search.depth
   P <- reticulate::dict(P, convert = TRUE)
 
   # Create and object with all the elements necessaty for abduction
-  bottom <- list(P, head_clauses, body_clauses, const, otu_data$otu_tb)
-  names(bottom) <- c("clauses", "head", "body", "const", "otu_tb")
+  bottom <- list(P, head_clauses, body_clauses, const)
+  names(bottom) <- c("clauses", "head", "body", "const")
   return(bottom)
 }

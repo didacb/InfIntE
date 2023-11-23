@@ -9,7 +9,7 @@
 #'
 #' @examples
 #' join_abundances(otu_tb, absolute_abundance, depth = NULL)
-join_abundances <- function(otu_tb, absolute_abundance, depth = NULL, presence_table=NULL) {
+join_abundances <- function(otu_tb=NULL, absolute_abundance, depth = NULL, presence_table=NULL) {
   change_position <- nrow(otu_tb)
   end_position<- 0
   if (!is.null(absolute_abundance) & !is.null(otu_tb)) {

@@ -10,42 +10,42 @@
 #'
 #' @examples
 #' get_absolute_observations(otu_abundance, comparisons)
-get_absolute_observations <- function(otu_abundance, comparisons, exclusion = FALSE) {
-  samps <- colnames(otu_abundance)
-  spec <- rownames(otu_abundance)
-
+get_temporal_observations <- function(otu, t0, t1, exclusion = TRUE, zero = FALSE) {
+  samps <- colnames(t0)
+  spec <- otu
+  
   # For each comparison
-  abundance_clauses <- vapply(comparisons, function(x) {
+  abundance_clauses <- vapply(samps, function(x) {
     # Subset pair of samples
-    pair_samps <- otu_abundance[, x]
-    abundance_unit <- as.character(NA)
+    pair_samps <- c(t0[otu, x],t1[otu, x])
+    if(zero){
+      abundance_unit <-  paste0("abundance(", x, ",", spec, ",zero).") 
+    }else{
+      abundance_unit <- as.character(NA)
+    }
     if (all(pair_samps != 0)) {
-      # If log samp1 is smaller than samp2
-      if (abs(pair_samps[2] / pair_samps[1]) > 0.3 & pair_samps[1] < pair_samps[2]) {
+      # If t0 is smaller than t1
+      if ((log(pair_samps[2]) - log(pair_samps[1])) / log(pair_samps[2]) > 0.3 & pair_samps[1] < pair_samps[2]) {
         abundance_unit <- paste0(
-          "abundance(", samps[x[1]], ",",
-          samps[x[2]], ",", spec, ",up)."
+          "abundance(", x, ",", spec, ",up)."
         )
       }
       # If log samp1 is bigger than samp2
-      if (abs(pair_samps[1] / pair_samps[2]) > 0.3 & pair_samps[1] > pair_samps[2]) {
+      if  ((log(pair_samps[1]) - log(pair_samps[2])) / log(pair_samps[2]) > 0.3 & pair_samps[1] > pair_samps[2]) {
         abundance_unit <- paste0(
-          "abundance(", samps[x[1]], ",",
-          samps[x[2]], ",", spec, ",down)."
+          "abundance(", x, ",", spec, ",down)."
         )
       }
     } else {
       if (exclusion) {
         if (pair_samps[1] == 0 & pair_samps[2] > 0) {
           abundance_unit <- paste0(
-            "abundance(", samps[x[1]], ",",
-            samps[x[2]], ",", spec, ",app)."
+            "abundance(", x, ",", spec, ",app)."
           )
         }
         if (pair_samps[1] > 0 & pair_samps[2] == 0) {
           abundance_unit <- paste0(
-            "abundance(", samps[x[1]], ",",
-            samps[x[2]], ",", spec, ",dis)."
+            "abundance(", x, ",", spec, ",dis)."
           )
         }
       }
