@@ -50,6 +50,11 @@ compilation:
 - cython
 - python-dev
 
+Also, the following python modules need to be installed:
+
+- numpy
+-texttable
+
 ## Example Data <a name="test"></a>
 
 We illustrate how InfIntE works using wheat foliar bacterial ASV data.
