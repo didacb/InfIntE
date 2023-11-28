@@ -53,7 +53,7 @@ compilation:
 Also, the following python modules need to be installed:
 
 - numpy
--texttable
+- texttable
 
 ## Example Data <a name="test"></a>
 
