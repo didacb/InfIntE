@@ -43,12 +43,12 @@ PyGol and obtain the functions for abduction run:
 load_PyGol()
 ```
 
-Currently PyGol only works in linux environments. It is necessary that
-the following linux packages are installed to avoid problems of
-compilation:
+Currently PyGol only works in linux and mac environments. It is necessary that
+the following python modules are installed:
 
+- numpy
+- texttable
 - cython
-- python-dev
 
 ## Example Data <a name="test"></a>
 

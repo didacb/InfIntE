@@ -1,5 +1,5 @@
 
-from pygolm_V1 import *
+from pygol import *
 
 """
 def dany():
@@ -23,5 +23,5 @@ def generate_bottom_clause(file, constant_set, positive_example, negative_exampl
 
 
 def abduction(P, abduce, positive_example_list, constant_set, meta_rule, metric):
-	coverage=pygolm_abduction(P, abduce,  positive_example_list=positive_example_list, constant_set=constant_set, meta_rule=meta_rule, metric="predictive_power")
+	coverage=pygol_abduction(P, abduce,  positive_example_list=positive_example_list, constant_set=constant_set, meta_rule=meta_rule, metric="predictive_power")
 	return coverage

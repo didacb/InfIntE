@@ -36,10 +36,12 @@ Interaction inference uses the logical inference process of abduction. Abduction
 load_PyGol()
 ```
 
-Currently PyGol only works in linux environments. It is necessary that the following linux packages are installed to avoid problems of compilation:
+Currently PyGol only works in linux and mac environments. It is necessary that
+the following python modules are installed:
 
+- numpy
+- texttable
 - cython
-- python-dev
 
 ## Example Data <a name="test"></a>
 
@@ -84,7 +86,7 @@ To infer interactions, InfIntE offers a homonymous function to perform the whole
 library(igraph)
 #Infer interactions using the complete sequencing depth
 interactions<- infinte(otu_tb = data.frame(otu_table(asv_subset, taxa_are_rows = T)),
-                       exclusion = TRUE, ncores = 25, nperms = 50, depth = depth)
+                       exclusion = TRUE, ncores = 1, nperms = 50, depth = depth)
 
 #Get network
 network_graph<-graph_from_data_frame(interactions$selected_interactions)
