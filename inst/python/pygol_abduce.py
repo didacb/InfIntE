@@ -16,8 +16,8 @@ def dany():
 
 """
 
-def generate_bottom_clause(file, constant_set, positive_example, negative_example, container="dict"):
-	P, N = bottom_clause_generation( negative_example=negative_example, file=file, constant_set =constant_set , positive_example=positive_example, container = container, depth=2)
+def generate_bottom_clause(file, constant_set, positive_example, negative_example, container="dict", depth=2):
+	P, N = bottom_clause_generation( negative_example=negative_example, file=file, constant_set =constant_set , depth=2, positive_example=positive_example, container = container)
 	return P
 
 
