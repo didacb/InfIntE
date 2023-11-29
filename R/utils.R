@@ -99,28 +99,27 @@ get_comparsions <- function(n_samples) {
 #' @examples
 #' load_PyGol()
 load_PyGol <- function() {
+  
+  #Find the python file to import
   package.location<-  system.file(package = "InfIntE")
   python.file<- file.path(package.location, "python", "pygol_abduce.py")
+  
+  #Save current work directory 
   current_wd <- getwd()
-
-  #install python3-dev
-  #install cython
-  setwd(file.path(package.location, "python"))
-
-  python.ver<- system2("python3", "--version", stdout = TRUE)
-  python.ver<- gsub(" ", "", python.ver)
-  python.ver<- gsub("P", "p", python.ver)
-  python.ver<- gsub("\\.[1-9][1-9]$", "", python.ver)
-
-  if(!file.exists(file.path(package.location, "python", "pygolm_V1.so"))){
-
-    system2("gcc", args = paste("-I", paste0("/usr/include/", python.ver), "-c", "-fPIC", "pygolm_V1.c", "-o" ,"pygolm_V1.o", sep = " "))
-    system2("gcc", args = c( "pygolm_V1.o", "-shared", "-o", "pygolm_V1.so"))
+  
+  #Check if there is the compiled so
+  files_python<- list.files(file.path(package.location, "python"))
+  if(!any(grepl("\\.so", files_python))){
+    
+    #Compile using cython
+    setwd(file.path(package.location, "python"))
+    system2("python3",args =  c("generate_shared_object.py", 
+                                "build_ext", "--inplace"))
+    setwd(current_wd)
   }
-
-  reticulate::use_python(system2("which", python.ver, stdout = TRUE))
+  
+  #Import python functions
   reticulate::source_python(python.file, envir = globalenv())
-  setwd(current_wd)
   on.exit(setwd(current_wd))
 }
 

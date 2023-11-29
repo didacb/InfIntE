@@ -1,5 +1,5 @@
 
-from pygolm_V1 import *
+from pygol import *
 
 """
 def dany():
@@ -16,12 +16,12 @@ def dany():
 
 """
 
-def generate_bottom_clause(file, constant_set, positive_example, negative_example, container="dict", depth=2):
-	P, N = bottom_clause_generation( negative_example=negative_example, file=file, constant_set =constant_set , depth=2, positive_example=positive_example, container = container)
+def generate_bottom_clause(file, constant_set, positive_example, negative_example, container="dict"):
+	P, N = bottom_clause_generation( negative_example=negative_example, file=file, constant_set =constant_set , positive_example=positive_example, container = container)
 	return P
 
 
 
 def abduction(P, abduce, positive_example_list, constant_set, meta_rule, metric):
-	coverage=pygolm_abduction(P, abduce,  positive_example_list=positive_example_list, constant_set=constant_set, meta_rule=meta_rule, metric="predictive_power")
+	coverage=pygol_abduction(P, abduce,  positive_example_list=positive_example_list, constant_set=constant_set, meta_rule=meta_rule, metric="predictive_power")
 	return coverage
