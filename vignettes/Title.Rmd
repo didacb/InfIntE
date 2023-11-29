@@ -50,9 +50,7 @@ First, let's import and subset the data to obtain a manageable size.
 
 ```{r, results='hide', message=FALSE, warning=FALSE}
 #Import data
-#library(InfIntE)
-library(devtools)
-load_all("/home/dbarroso/Desktop/InfIntE")
+library(InfIntE)
 library(phyloseq)
 
 data("BCM_16S_wheat_phyloseq_filtered_lulu")
