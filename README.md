@@ -43,12 +43,15 @@ PyGol and obtain the functions for abduction run:
 load_PyGol()
 ```
 
-Currently PyGol only works in linux and mac environments. It is necessary that
-the following python modules are installed:
+To use PyGol it is necessary that the following python modules are
+installed (preferably using pip3):
 
 - numpy
 - texttable
 - cython
+
+Windows users also need to install the Microsoft C++ [Build
+Tools](https://visualstudio.microsoft.com/visual-cpp-build-tools/)
 
 ## Example Data <a name="test"></a>
 
@@ -103,7 +106,7 @@ interactions, in a single run.
 library(igraph)
 #Infer interactions using the complete sequencing depth
 interactions<- infinte(otu_tb = data.frame(otu_table(asv_subset, taxa_are_rows = T)),
-                       exclusion = TRUE, ncores = 25, nperms = 50, depth = depth)
+                       exclusion = TRUE, ncores = 1, nperms = 50, depth = depth)
 
 #Get network
 network_graph<-graph_from_data_frame(interactions$selected_interactions)

@@ -36,12 +36,13 @@ Interaction inference uses the logical inference process of abduction. Abduction
 load_PyGol()
 ```
 
-Currently PyGol only works in linux and mac environments. It is necessary that
-the following python modules are installed:
+To use PyGol it is necessary that the following python modules are installed (preferably using pip3):
 
 - numpy
 - texttable
 - cython
+
+Windows users also need to install the Microsoft C++ [Build Tools](https://visualstudio.microsoft.com/visual-cpp-build-tools/)
 
 ## Example Data <a name="test"></a>
 
