@@ -124,3 +124,19 @@ load_PyGol <- function() {
 }
 
 
+#' Subtract a number 
+#' Subtract one number to other and return absolute value
+#' @param x vector with two numbers
+#' @return the subtraction
+#' @export
+#'
+#' @examples
+#' minus(c(4,3))
+minus <- function(x){
+  if(length(x)==1){
+    return(x)
+  }
+ if(length(x)==2){
+   return(abs(x[1] - x[2]))
+ }
+}

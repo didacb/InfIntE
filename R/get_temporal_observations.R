@@ -18,23 +18,19 @@ get_temporal_observations <- function(otu, t0, t1, exclusion = TRUE, zero = FALS
   abundance_clauses <- vapply(samps, function(x) {
     # Subset pair of samples
     pair_samps <- c(t0[otu, x],t1[otu, x])
-    if(zero){
-      abundance_unit <-  paste0("abundance(", x, ",", spec, ",zero).") 
-    }else{
-      abundance_unit <- as.character(NA)
-    }
+    abundance_unit <- as.character(NA)
+  
     if (all(pair_samps != 0)) {
+      if(zero){
+        abundance_unit <-  paste0("abundance(", x, ",", spec, ",zero).") 
+      }
       # If t0 is smaller than t1
       if ((log(pair_samps[2]) - log(pair_samps[1])) / log(pair_samps[2]) > 0.3 & pair_samps[1] < pair_samps[2]) {
-        abundance_unit <- paste0(
-          "abundance(", x, ",", spec, ",up)."
-        )
+        abundance_unit <- paste0("abundance(", x, ",", spec, ",up).")
       }
       # If log samp1 is bigger than samp2
       if  ((log(pair_samps[1]) - log(pair_samps[2])) / log(pair_samps[2]) > 0.3 & pair_samps[1] > pair_samps[2]) {
-        abundance_unit <- paste0(
-          "abundance(", x, ",", spec, ",down)."
-        )
+        abundance_unit <- paste0("abundance(", x, ",", spec, ",down).")
       }
     } else {
       if (exclusion) {

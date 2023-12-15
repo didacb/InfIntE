@@ -27,14 +27,16 @@ pulsar_infinte <- function(sub_otu_tb, lambda, bottom_clauses, hypothesis, exclu
   
   #Kepp only app
   head_clauses<- unlist(head_clauses)
-
+  head_clauses<- head_clauses[grep("app", head_clauses)]
+                   #head_clauses[grep("dis", head_clauses)])
+  
   # Abduce
   abduced.table <- abduce(bottom_clauses =  bottom_clauses, hypothesis = hypothesis, head_clauses = head_clauses)
 
   # Get I values
   abduced.table <- get_I_values(abduced.table)
 
-  snames <- bottom_clauses$const[grep("s[1-9]", bottom_clauses$const)]
+  snames <- bottom_clauses$const[!bottom_clauses$const %in% c("app","dis","down","up","zero")]
   
   # Add non interacting asvs
   noi.asvs <- snames[!snames %in% unique(c(abduced.table$sp1, abduced.table$sp2))]

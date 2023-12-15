@@ -8,15 +8,25 @@
 #' @examples
 #' get_I_values(abduced)
 get_I_values <- function(abduced) {
-  # Obtain final value
-  require(plyr)
-  abduced <- ddply(abduced, .(sp1, sp2, lnk), summarise, comp = max(comp))
-  abduced <- ddply(abduced, .(sp1, sp2), summarise,
-    lnk = lnk[comp == max(comp)][1], comp = if (length(comp) > 1) {
-      max(comp) - min(comp)
-    } else {
-      comp
-    }
-  )
+
+  #usethis::use_data_table()
+  .datatable.aware = TRUE
+  #Save col names
+  nms<- colnames(abduced)
+  
+  #Transform to dt
+  abduced<- setDT(abduced)
+  
+  #Sum same interactions
+  abduced<- abduced[,.(sum(comp)), by=.(sp1,sp2,lnk)]
+  colnames(abduced)<- nms
+  
+  #one minus opposite
+  abduced<- abduced[,.(lnk[comp==max(comp)][1], minus(comp)), by=.(sp1,sp2)]
+  
+  #back to df
+  abduced<- as.data.frame(abduced)
+  colnames(abduced)<- nms
+  
   return(abduced)
 }
