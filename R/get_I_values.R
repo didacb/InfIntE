@@ -9,7 +9,7 @@
 #' get_I_values(abduced)
 get_I_values <- function(abduced) {
 
-  #usethis::use_data_table()
+  
   .datatable.aware = TRUE
   #Save col names
   nms<- colnames(abduced)
