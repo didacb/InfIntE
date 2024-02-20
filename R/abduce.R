@@ -12,14 +12,16 @@
 #' @examples
 #' abduce(bottom_clause, hypothesis)
 #'
-abduce <- function(bottom_clauses, hypothesis, head_clauses = NULL) {
+abduce <- function(bottom_clauses, hypothesis, head_clauses = NULL, abducible = NULL) {
   if (is.null(head_clauses)) {
     head_clauses <- bottom_clauses$head
   }
 
   # Define abducibles
-  abducible <- c("predation", "no_predation")
-
+  if (is.null(abducible)){
+    abducible <- c("predation", "no_predation")
+  }
+  
   # Source python function
   load_PyGol()
 

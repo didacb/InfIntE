@@ -25,23 +25,23 @@ get_temporal_observations <- function(otu, t0, t1, exclusion = TRUE, zero = FALS
         abundance_unit <-  paste0("abundance(", x, ",", spec, ",zero).") 
       }
       # If t0 is smaller than t1
-      if ((log(pair_samps[2]) - log(pair_samps[1])) / log(pair_samps[2]) > 0.3 & pair_samps[1] < pair_samps[2]) {
+      if ((log(pair_samps[2]) - log(pair_samps[1])) / log(pair_samps[2]) > 0.1 & pair_samps[1] < pair_samps[2]) {
         abundance_unit <- paste0("abundance(", x, ",", spec, ",up).")
       }
       # If log samp1 is bigger than samp2
-      if  ((log(pair_samps[1]) - log(pair_samps[2])) / log(pair_samps[2]) > 0.3 & pair_samps[1] > pair_samps[2]) {
+      if  ((log(pair_samps[1]) - log(pair_samps[2])) / log(pair_samps[2]) > 0.1 & pair_samps[1] > pair_samps[2]) {
         abundance_unit <- paste0("abundance(", x, ",", spec, ",down).")
       }
     } else {
       if (exclusion) {
         if (pair_samps[1] == 0 & pair_samps[2] > 0) {
           abundance_unit <- paste0(
-            "abundance(", x, ",", spec, ",app)."
+            "abundance(", x, ",", spec, ",up)."
           )
         }
         if (pair_samps[1] > 0 & pair_samps[2] == 0) {
           abundance_unit <- paste0(
-            "abundance(", x, ",", spec, ",dis)."
+            "abundance(", x, ",", spec, ",down)."
           )
         }
       }
